@@ -1,7 +1,7 @@
-const express = require('express');
-const routes = require('./routes');
-const errorHandler = require('./middlewares/error.middleware');
-const notFound = require('./middlewares/notFound.middleware');
+import express from 'express';
+import routes from './routes/index.js';
+import { errorConverter, errorHandler } from './middlewares/error.middleware.js';
+import { notFound } from './middlewares/notFound.middleware.js';
 
 const app = express();
 
@@ -17,8 +17,13 @@ app.get('/health', (req, res) => {
 // API routes (versioned)
 app.use('/api/v1', routes);
 
-// 404 handler and error handler
+// send back a 404 error for any unknown api request
 app.use(notFound);
+
+// convert error to ApiError, if needed
+app.use(errorConverter);
+
+// handle error
 app.use(errorHandler);
 
-module.exports = app;
+export default app;

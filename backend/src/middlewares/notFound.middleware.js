@@ -1,5 +1,7 @@
-const ApiError = require('../utils/ApiError');
+import { ApiError } from '../utils/ApiError.js';
 
-module.exports = function notFound(req, res, next) {
-  res.status(404).json({ success: false, message: 'Not Found' });
+const notFound = (req, res, next) => {
+  next(new ApiError(404, `Not Found - ${req.originalUrl}`));
 };
+
+export { notFound };

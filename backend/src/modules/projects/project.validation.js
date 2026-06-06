@@ -1,34 +1,78 @@
 const Joi = require('joi');
 
+const imageSchema = Joi.object({
+  publicId: Joi.string().required(),
+  secureUrl: Joi.string().uri().required(),
+});
+
+const clientSchema = Joi.object({
+  name: Joi.string().required(),
+  industry: Joi.string().optional().allow(''),
+  location: Joi.string().optional().allow(''),
+});
+
+const testimonialSchema = Joi.object({
+  clientName: Joi.string().optional().allow(''),
+  position: Joi.string().optional().allow(''),
+  message: Joi.string().optional().allow(''),
+});
+
 const createProjectSchema = Joi.object({
-  title: Joi.string().required(),
-  slug: Joi.string().optional(),
-  clientName: Joi.string().optional(),
-  location: Joi.string().optional(),
-  capacity: Joi.string().optional(),
+  title: Joi.string().required().min(3).max(255),
+  shortDescription: Joi.string().required().min(10).max(500),
+  description: Joi.string().required().min(20),
+  client: clientSchema.optional(),
+  projectCategory: Joi.string().required().min(3).max(100),
+  projectType: Joi.string().optional().allow(''),
+  capacity: Joi.string().optional().allow(''),
+  duration: Joi.string().optional().allow(''),
   completionDate: Joi.date().optional(),
-  shortDescription: Joi.string().optional(),
-  description: Joi.string().optional(),
-  featured: Joi.boolean().default(false),
-  seoTitle: Joi.string().optional(),
-  seoDescription: Joi.string().optional(),
+  technologiesUsed: Joi.array().items(Joi.string()).optional(),
+  projectChallenges: Joi.array().items(Joi.string()).optional(),
+  projectSolutions: Joi.array().items(Joi.string()).optional(),
+  projectResults: Joi.array().items(Joi.string()).optional(),
+  testimonial: testimonialSchema.optional(),
+  featured: Joi.boolean().optional(),
+  status: Joi.string().valid('draft', 'published', 'archived').optional(),
+  displayOrder: Joi.number().integer().min(0).optional(),
+  seoTitle: Joi.string().optional().allow(''),
+  seoDescription: Joi.string().optional().allow(''),
+  // createdBy will be set by the server
 });
 
 const updateProjectSchema = Joi.object({
-  title: Joi.string().optional(),
-  slug: Joi.string().optional(),
-  clientName: Joi.string().optional(),
-  location: Joi.string().optional(),
-  capacity: Joi.string().optional(),
+  title: Joi.string().min(3).max(255).optional(),
+  shortDescription: Joi.string().min(10).max(500).optional(),
+  description: Joi.string().min(20).optional(),
+  client: clientSchema.optional(),
+  projectCategory: Joi.string().min(3).max(100).optional(),
+  projectType: Joi.string().optional().allow(''),
+  capacity: Joi.string().optional().allow(''),
+  duration: Joi.string().optional().allow(''),
   completionDate: Joi.date().optional(),
-  shortDescription: Joi.string().optional(),
-  description: Joi.string().optional(),
+  technologiesUsed: Joi.array().items(Joi.string()).optional(),
+  projectChallenges: Joi.array().items(Joi.string()).optional(),
+  projectSolutions: Joi.array().items(Joi.string()).optional(),
+  projectResults: Joi.array().items(Joi.string()).optional(),
+  testimonial: testimonialSchema.optional(),
   featured: Joi.boolean().optional(),
-  seoTitle: Joi.string().optional(),
-  seoDescription: Joi.string().optional(),
+  status: Joi.string().valid('draft', 'published', 'archived').optional(),
+  displayOrder: Joi.number().integer().min(0).optional(),
+  seoTitle: Joi.string().optional().allow(''),
+  seoDescription: Joi.string().optional().allow(''),
+});
+
+const reorderProjectsSchema = Joi.object({
+  projects: Joi.array().items(
+    Joi.object({
+      id: Joi.string().required(),
+      displayOrder: Joi.number().integer().min(0).required(),
+    })
+  ).required(),
 });
 
 module.exports = {
   createProjectSchema,
   updateProjectSchema,
+  reorderProjectsSchema,
 };

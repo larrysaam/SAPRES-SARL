@@ -1,17 +1,15 @@
-require('./config/env');
-const http = require('http');
-const mongoose = require('mongoose');
-const app = require('./app');
-const connectDB = require('./config/db');
-const { port } = require('./config/env');
+import http from 'http';
+import app from './app.js';
+import connectDB from './config/db.js';
+import config from './config/env.js';
 
 async function start() {
   try {
     await connectDB();
     const server = http.createServer(app);
-    server.listen(port, () => {
-      console.log(`✓ Server running on port ${port}`);
-      console.log(`✓ Environment: ${process.env.NODE_ENV}`);
+    server.listen(config.port, () => {
+      console.log(`✓ Server running on port ${config.port}`);
+      console.log(`✓ Environment: ${config.env}`);
     });
 
     process.on('unhandledRejection', (err) => {

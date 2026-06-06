@@ -1,10 +1,16 @@
-const ApiError = require('../utils/ApiError');
+import httpStatus from 'http-status';
+import { ApiError } from '../utils/ApiError.js';
 
-module.exports = function rolesMiddleware(requiredRoles = []) {
-  return function (req, res, next) {
-    if (!req.user) return next(new ApiError('Authentication required', 401));
-    const hasRole = req.user.roles && requiredRoles.some(r => req.user.roles.includes(r));
-    if (!hasRole) return next(new ApiError('Forbidden', 403));
-    next();
-  };
+const authorize = (...roles) => (req, res, next) => {
+  if (!req.user) {
+    return next(new ApiError(httpStatus.UNAUTHORIZED, 'User not authenticated'));
+  }
+
+  if (!roles.includes(req.user.role)) {
+    return next(new ApiError(httpStatus.FORBIDDEN, 'You do not have permission to perform this action'));
+  }
+
+  next();
 };
+
+export default authorize;

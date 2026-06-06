@@ -1,0 +1,184 @@
+const projectService = require('./project.service');
+const { createProjectSchema, updateProjectSchema, reorderProjectsSchema } = require('./project.validation');
+const { ApiError } = require('../../utils/ApiError');
+const { ApiResponse } = require('../../utils/ApiResponse');
+
+// Helper function for validation
+const validate = (schema) => (req, res, next) => {
+  const { error } = schema.validate(req.body);
+  if (error) {
+    return next(new ApiError(400, error.details[0].message));
+  }
+  next();
+};
+
+// Get all projects
+const getAllProjects = async (req, res, next) => {
+  try {
+    const response = await projectService.getAllProjects(req.query);
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get single project by slug
+const getSingleProject = async (req, res, next) => {
+  try {
+    const { slug } = req.params;
+    const response = await projectService.getSingleProject(slug);
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Create a new project
+const createProject = async (req, res, next) => {
+  try {
+    const userId = req.user._id; // Assuming user ID is available from auth middleware
+    const response = await projectService.createProject(req.body, userId);
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Update project
+const updateProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const response = await projectService.updateProject(id, req.body);
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Delete project (soft delete)
+const deleteProject = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const response = await projectService.deleteProject(id);
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Upload featured image
+const uploadFeaturedImage = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!req.file) {
+      throw new ApiError(400, 'No file uploaded');
+    }
+    const response = await projectService.uploadFeaturedImage(id, req.file);
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Upload gallery images
+const uploadGalleryImages = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!req.files || req.files.length === 0) {
+      throw new ApiError(400, 'No files uploaded');
+    }
+    const response = await projectService.uploadGalleryImages(id, req.files);
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Upload before images
+const uploadBeforeImages = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!req.files || req.files.length === 0) {
+      throw new ApiError(400, 'No files uploaded');
+    }
+    const response = await projectService.uploadBeforeImages(id, req.files);
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Upload after images
+const uploadAfterImages = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (!req.files || req.files.length === 0) {
+      throw new ApiError(400, 'No files uploaded');
+    }
+    const response = await projectService.uploadAfterImages(id, req.files);
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Delete project image
+const deleteProjectImage = async (req, res, next) => {
+  try {
+    const { id, imageId } = req.params;
+    const response = await projectService.deleteProjectImage(id, imageId);
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get featured projects
+const getFeaturedProjects = async (req, res, next) => {
+  try {
+    const response = await projectService.getFeaturedProjects();
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get project statistics
+const getProjectStatistics = async (req, res, next) => {
+  try {
+    const response = await projectService.getProjectStatistics();
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Reorder projects
+const reorderProjects = async (req, res, next) => {
+  try {
+    const response = await projectService.reorderProjects(req.body.projects);
+    res.status(response.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
+module.exports = {
+  validate,
+  createProjectSchema,
+  updateProjectSchema,
+  reorderProjectsSchema,
+  getAllProjects,
+  getSingleProject,
+  createProject,
+  updateProject,
+  deleteProject,
+  uploadFeaturedImage,
+  uploadGalleryImages,
+  uploadBeforeImages,
+  uploadAfterImages,
+  deleteProjectImage,
+  getFeaturedProjects,
+  getProjectStatistics,
+  reorderProjects,
+};

@@ -1,87 +1,145 @@
 const mongoose = require('mongoose');
+const { assetSchema } = require('../../schemas/asset.schema');
+const { slugify } = require('../../utils/slugify');
+
+const productStatus = ['draft', 'published', 'archived'];
+const productCurrency = ['XAF', 'USD', 'EUR'];
 
 const specificationSchema = new mongoose.Schema(
   {
-    label: String,
-    value: String
+    label: { type: String, required: true, trim: true },
+    value: { type: String, required: true, trim: true },
   },
-  {
-    _id: false
-  }
+  { _id: false }
 );
 
 const productSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true
+      required: true,
+      trim: true,
+      minlength: 3,
+      maxlength: 200,
     },
-
     slug: {
       type: String,
-      required: true,
-      unique: true
+      unique: true,
+      lowercase: true,
+      index: true,
     },
-
     shortDescription: {
       type: String,
-      required: true
+      required: true,
+      trim: true,
+      maxlength: 500,
     },
-
     description: {
       type: String,
-      required: true
+      required: true,
     },
-
     category: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Category",
-      required: true
+      _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+      name: { type: String, required: true },
+      slug: { type: String, required: true },
     },
-
     sku: {
       type: String,
-      unique: true
+      required: true,
+      unique: true,
+      trim: true,
     },
-
+    brand: {
+      type: String,
+      required: true,
+      trim: true,
+    },
     price: {
       type: Number,
-      required: true
+      required: true,
+      min: 0,
     },
-
-    discountPrice: Number,
-
+    discountPrice: {
+      type: Number,
+      min: 0,
+      validate: {
+        validator: function (v) {
+          return !v || v < this.price;
+        },
+        message: 'Discount price must be less than the regular price',
+      },
+    },
     stock: {
       type: Number,
-      default: 0
+      required: true,
+      min: 0,
     },
-
-    images: [String],
-
-    datasheets: [String],
-
-    specifications: [specificationSchema],
-
-    warranty: String,
-
+    currency: {
+      type: String,
+      enum: productCurrency,
+      default: 'XAF',
+    },
+    warranty: {
+      type: String,
+      trim: true,
+    },
     featured: {
       type: Boolean,
-      default: false
+      default: false,
     },
-
     status: {
       type: String,
-      enum: ["draft", "published"],
-      default: "published"
+      enum: productStatus,
+      default: 'draft',
     },
-
-    seoTitle: String,
-
-    seoDescription: String
+    specifications: {
+      type: [specificationSchema],
+      default: [],
+    },
+    images: {
+      type: [assetSchema],
+      default: [],
+      validate: {
+        validator: function (v) {
+          return v.length <= 10;
+        },
+        message: 'A product can have a maximum of 10 images',
+      },
+    },
+    datasheets: {
+      type: [assetSchema],
+      default: [],
+      validate: {
+        validator: function (v) {
+          return v.length <= 1;
+        },
+        message: 'A product can have a maximum of 1 datasheet',
+      },
+    },
+    seoTitle: {
+      type: String,
+      trim: true,
+    },
+    seoDescription: {
+      type: String,
+      trim: true,
+    },
+    createdBy: {
+      _id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      firstName: String,
+      lastName: String,
+    },
   },
-  {
-    timestamps: true
-  }
+  { timestamps: true }
 );
 
-module.exports = mongoose.model('Product', productSchema);
+productSchema.pre('save', function (next) {
+  if (this.isModified('name')) {
+    this.slug = slugify(this.name);
+  }
+  next();
+});
+
+const Product = mongoose.model('Product', productSchema);
+
+module.exports = Product;

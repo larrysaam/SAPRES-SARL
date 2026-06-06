@@ -1,13 +1,32 @@
-const ApiError = require('../utils/ApiError');
+import Joi from 'joi';
+import httpStatus from 'http-status';
+import { ApiError } from '../utils/ApiError.js';
 
-module.exports = function validateMiddleware(schema, property = 'body') {
-  return async (req, res, next) => {
-    try {
-      if (!schema || typeof schema.validateAsync !== 'function') return next();
-      await schema.validateAsync(req[property], { abortEarly: false, stripUnknown: true });
-      next();
-    } catch (err) {
-      return next(new ApiError('Validation failed', 400, err.details || err.message));
+const validate = (schema) => (req, res, next) => {
+  const validSchema = ['params', 'query', 'body'].reduce((acc, key) => {
+    if (schema[key]) {
+      acc[key] = schema[key];
     }
-  };
+    return acc;
+  }, {});
+
+  const obj = ['params', 'query', 'body'].reduce((acc, key) => {
+    if (schema[key]) {
+      acc[key] = req[key];
+    }
+    return acc;
+  }, {});
+
+  const { value, error } = Joi.compile(validSchema)
+    .prefs({ errors: { label: 'key' }, abortEarly: false })
+    .validate(obj);
+
+  if (error) {
+    const errorMessage = error.details.map((details) => details.message).join(', ');
+    return next(new ApiError(httpStatus.BAD_REQUEST, errorMessage));
+  }
+  Object.assign(req, value);
+  return next();
 };
+
+export default validate;

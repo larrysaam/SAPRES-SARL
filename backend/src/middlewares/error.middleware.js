@@ -1,16 +1,31 @@
-const ApiError = require('../utils/ApiError');
+import { ApiError } from '../utils/ApiError.js';
 
-module.exports = function errorHandler(err, req, res, next) {
-  if (res.headersSent) return next(err);
+const errorConverter = (err, req, res, next) => {
+  let error = err;
+  if (!(error instanceof ApiError)) {
+    const statusCode = error.statusCode || 500;
+    const message = error.message || 'Something went wrong';
+    error = new ApiError(statusCode, message, err.stack);
+  }
+  next(error);
+};
 
-  if (err instanceof ApiError) {
-    return res.status(err.statusCode).json({
-      success: false,
-      message: err.message,
-      errors: err.errors || null,
-    });
+const errorHandler = (err, req, res, next) => {
+  let { statusCode, message } = err;
+
+  res.locals.errorMessage = err.message;
+
+  const response = {
+    code: statusCode,
+    message,
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
+  };
+
+  if (process.env.NODE_ENV === 'development') {
+    console.error(err);
   }
 
-  console.error('Unhandled Error:', err);
-  res.status(500).json({ success: false, message: 'Internal Server Error' });
+  res.status(statusCode).send(response);
 };
+
+export { errorConverter, errorHandler };
