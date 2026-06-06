@@ -3,6 +3,8 @@ import { ApiError } from '../../utils/ApiError.js'; // For consistent error hand
 import { ApiResponse } from '../../utils/ApiResponse.js'; // For consistent success responses
 import cloudinary from '../../config/cloudinary.js'; // Cloudinary configuration for image uploads
 import generateSequentialNumber from '../../utils/generateSequentialNumber.js'; // Utility to generate sequential quote numbers
+import { stringify } from 'csv-stringify';
+import ExcelJS from 'exceljs';
 
 // Helper function to upload image to Cloudinary
 const uploadImageToCloudinary = async (file, folder) => {
@@ -219,7 +221,7 @@ const exportQuotes = async (format) => {
 
   if (format === 'csv') {
     // Example: Basic CSV generation (requires 'csv-stringify' or similar)
-    import { stringify } from 'csv-stringify';
+
     const columns = Object.keys(quotes[0] || {}); // Get headers from the first quote
     const data = [
       columns,
@@ -243,7 +245,7 @@ const exportQuotes = async (format) => {
     });
   } else if (format === 'excel') {
     // Example: Basic Excel generation (requires 'exceljs' or similar)
-    import ExcelJS from 'exceljs';
+    
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Quotes');
 
