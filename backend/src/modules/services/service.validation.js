@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
 // Joi schema for image objects
 const imageSchema = Joi.object({
@@ -58,7 +58,7 @@ const reorderServicesSchema = Joi.object({
   ).required(),
 });
 
-module.exports = {
+export default {
   createServiceSchema,
   updateServiceSchema,
   reorderServicesSchema,

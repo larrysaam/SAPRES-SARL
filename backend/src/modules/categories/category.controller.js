@@ -1,14 +1,14 @@
-const httpStatus = require('http-status');
-const { categoryService } = require('../services');
-const ApiError = require('../../utils/ApiError');
-const ApiResponse = require('../../utils/ApiResponse');
+import httpStatus from 'http-status';
+import categoryService from './category.service.js'; // Assuming category.service.js exists and is ESM
+import { ApiError } from '../../utils/ApiError.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
 
 const createCategoryController = async (req, res, next) => {
   try {
     const category = await categoryService.createCategory(req.body, req.user);
     res
       .status(httpStatus.CREATED)
-      .send(new ApiResponse(httpStatus.CREATED, 'Category created successfully', category));
+      .send(new ApiResponse(httpStatus.CREATED, category, 'Category created successfully'));
   } catch (error) {
     next(error);
   }
@@ -29,12 +29,7 @@ const getCategoriesController = async (req, res, next) => {
     res
       .status(httpStatus.OK)
       .send(
-        new ApiResponse(httpStatus.OK, 'Categories retrieved successfully', result.data, {
-          page: result.page,
-          limit: result.limit,
-          totalDocuments: result.totalDocuments,
-          totalPages: result.totalPages,
-        })
+        new ApiResponse(httpStatus.OK, result.data, 'Categories retrieved successfully', result.page, result.limit, result.totalDocuments, result.totalPages)
       );
   } catch (error) {
     next(error);
@@ -46,7 +41,7 @@ const getFeaturedCategoriesController = async (req, res, next) => {
     const categories = await categoryService.getFeaturedCategories();
     res
       .status(httpStatus.OK)
-      .send(new ApiResponse(httpStatus.OK, 'Featured categories retrieved successfully', categories));
+      .send(new ApiResponse(httpStatus.OK, categories, 'Featured categories retrieved successfully'));
   } catch (error) {
     next(error);
   }
@@ -60,7 +55,7 @@ const getCategoryController = async (req, res, next) => {
     }
     res
       .status(httpStatus.OK)
-      .send(new ApiResponse(httpStatus.OK, 'Category retrieved successfully', category));
+      .send(new ApiResponse(httpStatus.OK, category, 'Category retrieved successfully'));
   } catch (error) {
     next(error);
   }
@@ -79,15 +74,13 @@ const getCategoryProductsController = async (req, res, next) => {
       .send(
         new ApiResponse(
           httpStatus.OK,
-          'Category products retrieved successfully',
           result.data,
-          {
-            page: result.page,
-            limit: result.limit,
-            totalDocuments: result.totalDocuments,
-            totalPages: result.totalPages,
-            category: result.category,
-          }
+          'Category products retrieved successfully',
+          result.page,
+          result.limit,
+          result.totalDocuments,
+          result.totalPages,
+          result.category
         )
       );
   } catch (error) {
@@ -100,7 +93,7 @@ const updateCategoryController = async (req, res, next) => {
     const category = await categoryService.updateCategoryById(req.params.categoryId, req.body);
     res
       .status(httpStatus.OK)
-      .send(new ApiResponse(httpStatus.OK, 'Category updated successfully', category));
+      .send(new ApiResponse(httpStatus.OK, category, 'Category updated successfully'));
   } catch (error) {
     next(error);
   }
@@ -111,7 +104,7 @@ const deleteCategoryController = async (req, res, next) => {
     await categoryService.deleteCategoryById(req.params.categoryId);
     res
       .status(httpStatus.OK)
-      .send(new ApiResponse(httpStatus.OK, 'Category deleted successfully'));
+      .send(new ApiResponse(httpStatus.OK, null, 'Category deleted successfully'));
   } catch (error) {
     next(error);
   }
@@ -126,9 +119,7 @@ const uploadCategoryImageController = async (req, res, next) => {
     res
       .status(httpStatus.OK)
       .send(
-        new ApiResponse(httpStatus.OK, 'Category image uploaded successfully', {
-          image: category.image,
-        })
+        new ApiResponse(httpStatus.OK, { image: category.image }, 'Category image uploaded successfully')
       );
   } catch (error) {
     next(error);
@@ -144,14 +135,14 @@ const uploadCategoryIconController = async (req, res, next) => {
     res
       .status(httpStatus.OK)
       .send(
-        new ApiResponse(httpStatus.OK, 'Category icon uploaded successfully', { icon: category.icon })
+        new ApiResponse(httpStatus.OK, { icon: category.icon }, 'Category icon uploaded successfully')
       );
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = {
+export default {
   createCategoryController,
   getCategoriesController,
   getFeaturedCategoriesController,
@@ -162,3 +153,4 @@ module.exports = {
   uploadCategoryImageController,
   uploadCategoryIconController,
 };
+

@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const slugify = require('../../utils/slugify');
+import mongoose from 'mongoose';
+import slugify from '../../utils/slugify.js';
 
 const blogSchema = new mongoose.Schema(
   {
@@ -133,4 +133,4 @@ blogSchema.query.notDeleted = function () {
   return this.where({ deletedAt: { $exists: false } });
 };
 
-module.exports = mongoose.model('Blog', blogSchema);
+export default mongoose;

@@ -1,11 +1,11 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const BlogController = require('./blog.controller');
-const auth = require('../../middlewares/auth.middleware');
-const roles = require('../../middlewares/role.middleware');
-const validate = require('../../middlewares/validate.middleware');
-const { upload } = require('../../middlewares/upload.middleware');
-const { createBlogSchema, updateBlogSchema } = require('./blog.validation');
+import BlogController from './blog.controller.js';
+import auth from '../../middlewares/auth.middleware.js';
+import roles from '../../middlewares/role.middleware.js';
+import validate from '../../middlewares/validate.middleware.js';
+import { uploadSingle, uploadArray } from '../../middlewares/upload.middleware.js';
+import { createBlogSchema, updateBlogSchema } from './blog.validation.js';
 
 // Public routes
 router.get('/', BlogController.getAll);
@@ -22,11 +22,11 @@ router.put('/:id', auth, validate(updateBlogSchema), BlogController.update);
 router.delete('/:id', auth, BlogController.delete);
 
 // Image upload routes
-router.post('/:id/featured-image', auth, upload.single('image'), BlogController.uploadFeaturedImage);
-router.post('/:id/gallery', auth, upload.array('images'), BlogController.uploadGallery);
+router.post('/:id/featured-image', auth, uploadSingle('image'), BlogController.uploadFeaturedImage);
+router.post('/:id/gallery', auth, uploadArray('images'), BlogController.uploadGallery);
 router.delete('/:blogId/gallery/:imageId', auth, BlogController.deleteGalleryImage);
 
 // Statistics route (Admin only)
 router.get('/stats', auth, roles(['content_admin', 'super_admin']), BlogController.getStats);
 
-module.exports = router;
+export default router;

@@ -1,7 +1,7 @@
-const BlogService = require('./blog.service');
-const ApiResponse = require('../../utils/ApiResponse');
-const { uploadToCloudinary } = require('../../middlewares/upload.middleware');
-const cloudinary = require('../../config/cloudinary');
+import BlogService from './blog.service.js';
+import ApiResponse from '../../utils/ApiResponse.js';
+import { uploadToCloudinary } from '../../middlewares/upload.middleware.js';
+import cloudinary from '../../config/cloudinary.js';
 
 class BlogController {
   static async getAll(req, res, next) {
@@ -157,4 +157,4 @@ class BlogController {
   }
 }
 
-module.exports = BlogController;
+export default BlogController;

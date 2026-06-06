@@ -1,6 +1,6 @@
-const contactService = require('./contact.service');
-const { submitContactSchema, updateContactStatusSchema, addContactNoteSchema } = require('./contact.validation');
-const ApiError = require('../../utils/ApiError'); // For consistent error handling
+import contactService from './contact.service.js';
+import { submitContactSchema, updateContactStatusSchema, addContactNoteSchema } from './contact.validation.js';
+import { ApiError } from '../../utils/ApiError.js'; // For consistent error handling
 
 // Helper function for Joi validation middleware
 const validate = (schema) => (req, res, next) => {
@@ -98,7 +98,7 @@ const deleteContact = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export default {
   validate,
   submitContactSchema,
   updateContactStatusSchema,

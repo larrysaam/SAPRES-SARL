@@ -1,9 +1,9 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const contactController = require('./contact.controller'); // Import the contact controller
-const authMiddleware = require('../../middlewares/auth.middleware'); // Middleware for authentication
-const roleMiddleware = require('../../middlewares/role.middleware'); // Middleware for role-based authorization
-const { submitContactSchema, updateContactStatusSchema, addContactNoteSchema } = require('./contact.validation'); // Joi schemas for validation
+import contactController from './contact.controller.js'; // Import the contact controller
+import authMiddleware from '../../middlewares/auth.middleware.js'; // Middleware for authentication
+import roleMiddleware from '../../middlewares/role.middleware.js'; // Middleware for role-based authorization
+import { submitContactSchema, updateContactStatusSchema, addContactNoteSchema } from './contact.validation.js'; // Joi schemas for validation
 
 // Public route for submitting a contact form
 router.post(
@@ -41,4 +41,4 @@ router.post(
 // Route to soft delete a contact request by ID
 router.delete('/:id', contactController.deleteContact);
 
-module.exports = router;
+export default router;

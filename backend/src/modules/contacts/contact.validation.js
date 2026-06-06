@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
 // Joi schema for submitting a new contact form
 const submitContactSchema = Joi.object({
@@ -19,7 +19,7 @@ const addContactNoteSchema = Joi.object({
   note: Joi.string().required().min(5).max(500),
 });
 
-module.exports = {
+export default {
   submitContactSchema,
   updateContactStatusSchema,
   addContactNoteSchema,

@@ -1,5 +1,5 @@
-const Joi = require('joi');
-const { objectId } = require('../../middlewares/validate.middleware');
+import Joi from 'joi';
+import { objectId } from '../../utils/customValidation.js';
 
 const categoryStatus = ['active', 'inactive'];
 
@@ -53,7 +53,7 @@ const uploadCategoryIconSchema = Joi.object({
     .description('Category icon file (jpg, jpeg, png, webp, max 5MB)'),
 });
 
-module.exports = {
+export default {
   createCategorySchema,
   updateCategorySchema,
   getCategoriesSchema,

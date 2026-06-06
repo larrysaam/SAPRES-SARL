@@ -1,7 +1,7 @@
-const projectService = require('./project.service');
-const { createProjectSchema, updateProjectSchema, reorderProjectsSchema } = require('./project.validation');
-const { ApiError } = require('../../utils/ApiError');
-const { ApiResponse } = require('../../utils/ApiResponse');
+import projectService from './project.service.js';
+import { createProjectSchema, updateProjectSchema, reorderProjectsSchema } from './project.validation.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
 
 // Helper function for validation
 const validate = (schema) => (req, res, next) => {
@@ -163,7 +163,7 @@ const reorderProjects = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export default {
   validate,
   createProjectSchema,
   updateProjectSchema,

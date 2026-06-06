@@ -1,6 +1,6 @@
-const quoteService = require('./quote.service');
-const { requestQuoteSchema, updateQuoteStatusSchema, addQuoteNoteSchema, scheduleSiteVisitSchema } = require('./quote.validation');
-const ApiError = require('../../utils/ApiError'); // For consistent error handling
+import quoteService from './quote.service.js';
+import { requestQuoteSchema, updateQuoteStatusSchema, addQuoteNoteSchema, scheduleSiteVisitSchema } from './quote.validation.js';
+import { ApiError } from '../../utils/ApiError.js'; // For consistent error handling
 
 // Helper function for Joi validation middleware
 const validate = (schema) => (req, res, next) => {
@@ -143,7 +143,7 @@ const exportQuotes = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export default {
   validate,
   requestQuoteSchema,
   updateQuoteStatusSchema,

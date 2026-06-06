@@ -1,10 +1,10 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const quoteController = require('./quote.controller'); // Import the quote controller
-const authMiddleware = require('../../middlewares/auth.middleware'); // Middleware for authentication
-const roleMiddleware = require('../../middlewares/role.middleware'); // Middleware for role-based authorization
-const { uploadMultiple } = require('../../middlewares/upload.middleware'); // Middleware for file uploads
-const { requestQuoteSchema, updateQuoteStatusSchema, addQuoteNoteSchema, scheduleSiteVisitSchema } = require('./quote.validation'); // Joi schemas for validation
+import quoteController from './quote.controller.js'; // Import the quote controller
+import authMiddleware from '../../middlewares/auth.middleware.js'; // Middleware for authentication
+import roleMiddleware from '../../middlewares/role.middleware.js'; // Middleware for role-based authorization
+import { uploadMultiple } from '../../middlewares/upload.middleware.js'; // Middleware for file uploads
+import { requestQuoteSchema, updateQuoteStatusSchema, addQuoteNoteSchema, scheduleSiteVisitSchema } from './quote.validation.js'; // Joi schemas for validation
 
 // Public route for requesting a new quote (supports multiple file attachments)
 router.post(
@@ -53,4 +53,4 @@ router.get('/stats', quoteController.getQuoteStatistics);
 // Route to export leads
 router.get('/export', quoteController.exportQuotes);
 
-module.exports = router;
+export default router;

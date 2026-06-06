@@ -1,10 +1,10 @@
-const express = require('express');
-const auth = require('../../middlewares/auth.middleware');
-const validate = require('../../middlewares/validate.middleware');
-const { authorize } = require('../../middlewares/role.middleware');
-const upload = require('../../middlewares/upload.middleware');
-const productValidation = require('./product.validation');
-const productController = require('./product.controller');
+﻿import express from 'express';
+import auth from '../../middlewares/auth.middleware.js';
+import validate from '../../middlewares/validate.middleware.js';
+import authorize from '../../middlewares/role.middleware.js';
+import { uploadSingle, uploadArray } from '../../middlewares/upload.middleware.js';
+import productValidation from './product.validation.js';
+import productController from './product.controller.js';
 
 const router = express.Router();
 
@@ -19,7 +19,7 @@ router.use(auth); // Apply authentication middleware to all subsequent routes in
 
 router.post(
   '/',
-  authorize(['super_admin', 'sales_admin']),
+  authorize('super_admin', 'sales_admin'),
   validate(productValidation.createProductSchema),
   productController.createProductController
 );
@@ -27,32 +27,32 @@ router.post(
 router
   .route('/:productId')
   .put(
-    authorize(['super_admin', 'sales_admin']),
+    authorize('super_admin', 'sales_admin'),
     validate(productValidation.updateProductSchema),
     productController.updateProductController
   )
-  .delete(authorize(['super_admin', 'sales_admin']), productController.deleteProductController);
+  .delete(authorize('super_admin', 'sales_admin'), productController.deleteProductController);
 
 router.post(
   '/:productId/images',
-  authorize(['super_admin', 'sales_admin']),
-  upload.array('images', 10), // Max 10 images
+  authorize('super_admin', 'sales_admin'),
+  uploadArray('images', 10), // Max 10 images
   validate(productValidation.uploadProductImagesSchema),
   productController.uploadProductImagesController
 );
 
 router.delete(
   '/:productId/images/:publicId',
-  authorize(['super_admin', 'sales_admin']),
+  authorize('super_admin', 'sales_admin'),
   productController.deleteProductImageController
 );
 
 router.post(
   '/:productId/datasheets',
-  authorize(['super_admin', 'sales_admin']),
-  upload.single('datasheet'),
+  authorize('super_admin', 'sales_admin'),
+  uploadSingle('datasheet'),
   validate(productValidation.uploadDatasheetSchema),
   productController.uploadDatasheetController
 );
 
-module.exports = router;
+export default router;

@@ -1,14 +1,14 @@
-const httpStatus = require('http-status');
-const { homepageService } = require('../services');
-const ApiError = require('../../utils/ApiError');
-const ApiResponse = require('../../utils/ApiResponse');
+import httpStatus from 'http-status';
+import homepageService from './homepage.service.js'; // Assuming homepage.service.js exists and is ESM
+import { ApiError } from '../../utils/ApiError.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
 
 const getHomepageController = async (req, res, next) => {
   try {
     const homepage = await homepageService.getHomepage();
     res
       .status(httpStatus.OK)
-      .send(new ApiResponse(httpStatus.OK, 'Homepage retrieved successfully', homepage));
+      .send(new ApiResponse(httpStatus.OK, homepage, 'Homepage retrieved successfully'));
   } catch (error) {
     next(error);
   }
@@ -19,7 +19,7 @@ const updateHomepageController = async (req, res, next) => {
     const homepage = await homepageService.updateHomepage(req.body);
     res
       .status(httpStatus.OK)
-      .send(new ApiResponse(httpStatus.OK, 'Homepage updated successfully', homepage));
+      .send(new ApiResponse(httpStatus.OK, homepage, 'Homepage updated successfully'));
   } catch (error) {
     next(error);
   }
@@ -34,9 +34,7 @@ const uploadHeroImageController = async (req, res, next) => {
     res
       .status(httpStatus.OK)
       .send(
-        new ApiResponse(httpStatus.OK, 'Hero image uploaded successfully', {
-          backgroundImage: homepage.hero.backgroundImage,
-        })
+        new ApiResponse(httpStatus.OK, { backgroundImage: homepage.hero.backgroundImage }, 'Hero image uploaded successfully')
       );
   } catch (error) {
     next(error);
@@ -52,16 +50,14 @@ const uploadHeroVideoController = async (req, res, next) => {
     res
       .status(httpStatus.OK)
       .send(
-        new ApiResponse(httpStatus.OK, 'Hero video uploaded successfully', {
-          backgroundVideo: homepage.hero.backgroundVideo,
-        })
+        new ApiResponse(httpStatus.OK, { backgroundVideo: homepage.hero.backgroundVideo }, 'Hero video uploaded successfully')
       );
   } catch (error) {
     next(error);
   }
 };
 
-module.exports = {
+export default {
   getHomepageController,
   updateHomepageController,
   uploadHeroImageController,

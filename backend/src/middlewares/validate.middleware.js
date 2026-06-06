@@ -2,6 +2,14 @@ import Joi from 'joi';
 import httpStatus from 'http-status';
 import { ApiError } from '../utils/ApiError.js';
 
+// Custom validator for MongoDB ObjectId
+const objectId = (value, helpers) => {
+  if (!value.match(/^[0-9a-fA-F]{24}$/)) {
+    return helpers.error('any.invalid');
+  }
+  return value;
+};
+
 const validate = (schema) => (req, res, next) => {
   const validSchema = ['params', 'query', 'body'].reduce((acc, key) => {
     if (schema[key]) {
@@ -30,3 +38,4 @@ const validate = (schema) => (req, res, next) => {
 };
 
 export default validate;
+export { objectId };

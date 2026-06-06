@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
 const imageSchema = Joi.object({
   publicId: Joi.string().required(),
@@ -71,7 +71,7 @@ const reorderProjectsSchema = Joi.object({
   ).required(),
 });
 
-module.exports = {
+export default {
   createProjectSchema,
   updateProjectSchema,
   reorderProjectsSchema,

@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
 const createJobSchema = Joi.object({
   title: Joi.string().required(),
@@ -38,7 +38,7 @@ const updateJobSchema = Joi.object({
   seoDescription: Joi.string().optional(),
 });
 
-module.exports = {
+export default {
   createJobSchema,
   updateJobSchema,
 };

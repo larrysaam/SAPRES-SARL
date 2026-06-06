@@ -1,10 +1,10 @@
-const express = require('express');
-const auth = require('../../middlewares/auth.middleware');
-const validate = require('../../middlewares/validate.middleware');
-const { authorize } = require('../../middlewares/role.middleware');
-const upload = require('../../middlewares/upload.middleware');
-const homepageValidation = require('./homepage.validation');
-const homepageController = require('./homepage.controller');
+import express from 'express';
+import auth from '../../middlewares/auth.middleware.js';
+import validate from '../../middlewares/validate.middleware.js';
+import authorize from '../../middlewares/role.middleware.js';
+import { uploadSingle } from '../../middlewares/upload.middleware.js';
+import homepageValidation from './homepage.validation.js';
+import homepageController from './homepage.controller.js';
 
 const router = express.Router();
 
@@ -25,7 +25,7 @@ router
 router.post(
   '/hero-image',
   authorize(['super_admin', 'content_admin']),
-  upload.single('heroImage'),
+  uploadSingle('heroImage'),
   validate(homepageValidation.uploadHeroImageSchema),
   homepageController.uploadHeroImageController
 );
@@ -33,9 +33,9 @@ router.post(
 router.post(
   '/hero-video',
   authorize(['super_admin', 'content_admin']),
-  upload.single('heroVideo'),
+  uploadSingle('heroVideo'),
   validate(homepageValidation.uploadHeroVideoSchema),
   homepageController.uploadHeroVideoController
 );
 
-module.exports = router;
+export default router;

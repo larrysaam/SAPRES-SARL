@@ -1,6 +1,6 @@
-const Contact = require('./contact.model');
-const ApiError = require('../../utils/ApiError'); // For consistent error handling
-const ApiResponse = require('../../utils/ApiResponse'); // For consistent success responses
+import Contact from './contact.model.js';
+import { ApiError } from '../../utils/ApiError.js'; // For consistent error handling
+import { ApiResponse } from '../../utils/ApiResponse.js'; // For consistent success responses
 
 /**
  * Submits a new contact form request.
@@ -121,7 +121,7 @@ const deleteContact = async (contactId) => {
   return new ApiResponse(200, null, 'Contact deleted successfully');
 };
 
-module.exports = {
+export default {
   submitContact,
   getAllContacts,
   getSingleContact,

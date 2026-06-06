@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // Schema for notes associated with a contact
 const noteSchema = new mongoose.Schema({
@@ -91,4 +91,4 @@ contactSchema.pre(/^find/, function (next) {
 // Create the Mongoose model for Contact
 const Contact = mongoose.model('Contact', contactSchema);
 
-module.exports = Contact;
+export default Contact;

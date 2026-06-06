@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const { assetSchema } = require('../../schemas/asset.schema');
-const { slugify } = require('../../utils/slugify');
+import mongoose from 'mongoose';
+import { assetSchema } from '../../schemas/asset.schema.js';
+import { slugify } from '../../utils/slugify.js';
 
 const productStatus = ['draft', 'published', 'archived'];
 const productCurrency = ['XAF', 'USD', 'EUR'];
@@ -142,4 +142,4 @@ productSchema.pre('save', function (next) {
 
 const Product = mongoose.model('Product', productSchema);
 
-module.exports = Product;
+export default Product;

@@ -1,8 +1,8 @@
-const Quote = require('./quote.model');
-const ApiError = require('../../utils/ApiError'); // For consistent error handling
-const ApiResponse = require('../../utils/ApiResponse'); // For consistent success responses
-const cloudinary = require('../../config/cloudinary'); // Cloudinary configuration for image uploads
-const generateSequentialNumber = require('../../utils/generateSequentialNumber'); // Utility to generate sequential quote numbers
+import Quote from './quote.model.js';
+import { ApiError } from '../../utils/ApiError.js'; // For consistent error handling
+import { ApiResponse } from '../../utils/ApiResponse.js'; // For consistent success responses
+import cloudinary from '../../config/cloudinary.js'; // Cloudinary configuration for image uploads
+import generateSequentialNumber from '../../utils/generateSequentialNumber.js'; // Utility to generate sequential quote numbers
 
 // Helper function to upload image to Cloudinary
 const uploadImageToCloudinary = async (file, folder) => {
@@ -219,7 +219,7 @@ const exportQuotes = async (format) => {
 
   if (format === 'csv') {
     // Example: Basic CSV generation (requires 'csv-stringify' or similar)
-    const { stringify } = require('csv-stringify');
+    import { stringify } from 'csv-stringify';
     const columns = Object.keys(quotes[0] || {}); // Get headers from the first quote
     const data = [
       columns,
@@ -243,7 +243,7 @@ const exportQuotes = async (format) => {
     });
   } else if (format === 'excel') {
     // Example: Basic Excel generation (requires 'exceljs' or similar)
-    const ExcelJS = require('exceljs');
+    import ExcelJS from 'exceljs';
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Quotes');
 
@@ -272,7 +272,7 @@ const exportQuotes = async (format) => {
 };
 
 
-module.exports = {
+export default {
   requestQuote,
   getAllQuotes,
   getSingleQuote,

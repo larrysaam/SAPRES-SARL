@@ -1,7 +1,7 @@
-const Setting = require('./setting.model');
-const ApiError = require('../../utils/ApiError');
-const cloudinary = require('../../config/cloudinary');
-const httpStatus = require('http-status');
+import Setting from './setting.model.js';
+import { ApiError } from '../../utils/ApiError.js';
+import cloudinary from '../../config/cloudinary.js';
+import httpStatus from 'http-status';
 
 /**
  * Get settings
@@ -83,7 +83,7 @@ const uploadFavicon = async (file) => {
   return settings;
 };
 
-module.exports = {
+export default {
   getSettings,
   updateSettings,
   uploadLogo,

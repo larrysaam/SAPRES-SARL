@@ -1,4 +1,4 @@
-const Joi = require('joi');
+﻿import Joi from 'joi';
 
 const statisticSchema = Joi.object({
   label: Joi.string().trim().required(),
@@ -94,7 +94,7 @@ const uploadHeroVideoSchema = Joi.object({
     .description('Hero video file (mp4, mov, webm, max 100MB)'),
 });
 
-module.exports = {
+export default {
   updateHomepageSchema,
   uploadHeroImageSchema,
   uploadHeroVideoSchema,

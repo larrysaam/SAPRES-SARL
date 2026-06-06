@@ -1,5 +1,5 @@
-const Blog = require('./blog.model');
-const ApiError = require('../../utils/ApiError');
+import Blog from './blog.model.js';
+import { ApiError } from '../../utils/ApiError.js';
 
 class BlogService {
   static async create(payload, userId) {
@@ -195,4 +195,4 @@ class BlogService {
   }
 }
 
-module.exports = BlogService;
+export default BlogService;

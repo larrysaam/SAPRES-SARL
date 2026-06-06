@@ -1,10 +1,10 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const serviceController = require('./service.controller'); // Import the service controller
-const authMiddleware = require('../../middlewares/auth.middleware'); // Middleware for authentication
-const roleMiddleware = require('../../middlewares/role.middleware'); // Middleware for role-based authorization
-const { uploadSingle, uploadMultiple } = require('../../middlewares/upload.middleware'); // Middleware for file uploads
-const { createServiceSchema, updateServiceSchema, reorderServicesSchema } = require('./service.validation'); // Joi schemas for validation
+import serviceController from './service.controller.js'; // Import the service controller
+import authMiddleware from '../../middlewares/auth.middleware.js'; // Middleware for authentication
+import roleMiddleware from '../../middlewares/role.middleware.js'; // Middleware for role-based authorization
+import { uploadSingle, uploadMultiple } from '../../middlewares/upload.middleware.js'; // Middleware for file uploads
+import { createServiceSchema, updateServiceSchema, reorderServicesSchema } from './service.validation.js'; // Joi schemas for validation
 
 // Public routes - accessible without authentication
 router.get('/', serviceController.getAllServices); // Get all services with optional filters
@@ -58,4 +58,4 @@ router.patch(
   serviceController.reorderServices
 );
 
-module.exports = router;
+export default router;

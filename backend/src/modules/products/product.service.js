@@ -1,8 +1,8 @@
-const Product = require('./product.model');
-const ApiError = require('../../utils/ApiError');
-const cloudinary = require('../../config/cloudinary');
-const httpStatus = require('http-status');
-const Category = require('../categories/category.model'); // Assuming Category model exists
+import Product from './product.model.js';
+import { ApiError } from '../../utils/ApiError.js';
+import cloudinary from '../../config/cloudinary.js';
+import httpStatus from 'http-status';
+import Category from '../categories/category.model.js';
 
 /**
  * Create a product
@@ -277,7 +277,7 @@ const getRelatedProducts = async (slug) => {
   return relatedProducts;
 };
 
-module.exports = {
+export default {
   createProduct,
   queryProducts,
   getFeaturedProducts,

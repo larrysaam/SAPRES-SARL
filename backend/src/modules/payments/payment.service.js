@@ -1,5 +1,5 @@
-const Payment = require('./payment.model');
-const ApiError = require('../../utils/ApiError');
+import Payment from './payment.model.js';
+import { ApiError } from '../../utils/ApiError.js';
 
 class PaymentService {
   static async create(payload) {
@@ -35,4 +35,4 @@ class PaymentService {
   }
 }
 
-module.exports = PaymentService;
+export default PaymentService;

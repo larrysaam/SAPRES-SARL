@@ -1,10 +1,10 @@
-const express = require('express');
-const auth = require('../../middlewares/auth.middleware');
-const validate = require('../../middlewares/validate.middleware');
-const { authorize } = require('../../middlewares/role.middleware');
-const upload = require('../../middlewares/upload.middleware');
-const settingValidation = require('./setting.validation');
-const settingController = require('./setting.controller');
+import express from 'express';
+import auth from '../../middlewares/auth.middleware.js';
+import validate from '../../middlewares/validate.middleware.js';
+import  authorize  from '../../middlewares/role.middleware.js';
+import { uploadSingle } from '../../middlewares/upload.middleware.js';
+import settingValidation from './setting.validation.js';
+import settingController from './setting.controller.js';
 
 const router = express.Router();
 
@@ -25,7 +25,7 @@ router
 router.post(
   '/logo',
   authorize(['super_admin']),
-  upload.single('logo'),
+  uploadSingle('logo'),
   validate(settingValidation.uploadLogoSchema),
   settingController.uploadLogoController
 );
@@ -33,9 +33,9 @@ router.post(
 router.post(
   '/favicon',
   authorize(['super_admin']),
-  upload.single('favicon'),
+  uploadSingle('favicon'),
   validate(settingValidation.uploadFaviconSchema),
   settingController.uploadFaviconController
 );
 
-module.exports = router;
+export default router;

@@ -1,7 +1,7 @@
-const serviceService = require('./service.service');
-const { createServiceSchema, updateServiceSchema, reorderServicesSchema } = require('./service.validation');
-const ApiError = require('../../utils/ApiError'); // For consistent error handling
-const ApiResponse = require('../../utils/ApiResponse'); // For consistent success responses
+import serviceService from './service.service.js';
+import { createServiceSchema, updateServiceSchema, reorderServicesSchema } from './service.validation.js';
+import { ApiError } from '../../utils/ApiError.js'; // For consistent error handling
+import { ApiResponse } from '../../utils/ApiResponse.js'; // For consistent success responses
 
 // Helper function for Joi validation middleware
 const validate = (schema) => (req, res, next) => {
@@ -156,7 +156,7 @@ const reorderServices = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export default {
   validate,
   createServiceSchema,
   updateServiceSchema,

@@ -1,8 +1,8 @@
-const Service = require('./service.model');
-const ApiError = require('../../utils/ApiError'); // Using ApiError for consistent error handling
-const ApiResponse = require('../../utils/ApiResponse'); // Using ApiResponse for consistent success responses
-const cloudinary = require('../../config/cloudinary'); // Cloudinary configuration for image uploads
-const slugify = require('../../utils/slugify'); // Utility to generate URL-friendly slugs
+import Service from './service.model.js';
+import { ApiError } from '../../utils/ApiError.js'; // Using ApiError for consistent error handling
+import { ApiResponse } from '../../utils/ApiResponse.js'; // Using ApiResponse for consistent success responses
+import cloudinary from '../../config/cloudinary.js'; // Cloudinary configuration for image uploads
+import slugify from '../../utils/slugify.js'; // Utility to generate URL-friendly slugs
 
 // Helper function to upload image to Cloudinary
 const uploadImageToCloudinary = async (file, folder) => {
@@ -253,7 +253,7 @@ const reorderServices = async (servicesToReorder) => {
   return new ApiResponse(200, null, 'Service order updated successfully');
 };
 
-module.exports = {
+export default {
   getAllServices,
   getSingleService,
   createService,

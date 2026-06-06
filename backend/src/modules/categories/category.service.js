@@ -1,8 +1,8 @@
-const Category = require('./category.model');
-const ApiError = require('../../utils/ApiError');
-const cloudinary = require('../../config/cloudinary');
-const httpStatus = require('http-status');
-const Product = require('../products/product.model'); // To check for products before deleting a category
+import Category from './category.model.js';
+import { ApiError } from '../../utils/ApiError.js';
+import cloudinary from '../../config/cloudinary.js';
+import httpStatus from 'http-status';
+import Product from '../products/product.model.js'; // To check for products before deleting a category
 
 /**
  * Create a category
@@ -194,7 +194,7 @@ const deleteCategoryById = async (categoryId) => {
     await cloudinary.uploader.destroy(category.icon.publicId);
   }
 
-  await category.remove();
+  await category.deleteOne();
   return category;
 };
 
@@ -266,7 +266,7 @@ const uploadCategoryIcon = async (categoryId, file) => {
   return category;
 };
 
-module.exports = {
+export default {
   createCategory,
   queryCategories,
   getFeaturedCategories,

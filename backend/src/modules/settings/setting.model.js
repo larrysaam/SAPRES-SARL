@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const { assetSchema } = require('../../schemas/asset.schema');
+import mongoose from 'mongoose';
+import { assetSchema } from '../../schemas/asset.schema.js';
 
 const workingHoursSchema = new mongoose.Schema(
   {
@@ -74,4 +74,4 @@ const settingSchema = new mongoose.Schema(
 
 const Setting = mongoose.model('Setting', settingSchema);
 
-module.exports = Setting;
+export default Setting;

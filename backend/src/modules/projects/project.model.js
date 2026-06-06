@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const slugify = require('../../utils/slugify');
+import mongoose from 'mongoose';
+import slugify from '../../utils/slugify.js';
 
 const imageSchema = new mongoose.Schema({
   publicId: {
@@ -152,4 +152,4 @@ projectSchema.pre(/^find/, function (next) {
 
 const Project = mongoose.model('Project', projectSchema);
 
-module.exports = Project;
+export default Project;

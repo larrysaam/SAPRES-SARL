@@ -34,8 +34,5 @@ const uploadArray = (fieldName, maxCount) => (req, res, next) => {
   });
 };
 
-export {
-  uploadSingle,
-  uploadFields,
-  uploadArray,
-};
+export { uploadArray, uploadSingle, uploadFields };
+export default { uploadArray, uploadSingle, uploadFields };

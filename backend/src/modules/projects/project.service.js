@@ -1,8 +1,8 @@
-const Project = require('./project.model');
-const { ApiError } = require('../../utils/ApiError');
-const { ApiResponse } = require('../../utils/ApiResponse');
-const cloudinary = require('../../config/cloudinary');
-const slugify = require('../../utils/slugify');
+import Project from './project.model.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
+import cloudinary from '../../config/cloudinary.js';
+import slugify from '../../utils/slugify.js';
 
 // Helper function to upload image to Cloudinary
 const uploadImageToCloudinary = async (file, folder) => {
@@ -258,7 +258,7 @@ const reorderProjects = async (projectsToReorder) => {
 };
 
 
-module.exports = {
+export default {
   getAllProjects,
   getSingleProject,
   createProject,

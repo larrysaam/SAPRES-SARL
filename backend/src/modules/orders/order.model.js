@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const generateOrderNumber = require('../../utils/generateOrderNumber');
+import mongoose from 'mongoose';
+import generateOrderNumber from '../../utils/generateOrderNumber.js';
 
 const orderItemSchema = new mongoose.Schema(
   {
@@ -82,4 +82,4 @@ const orderSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model('Order', orderSchema);
+export default mongoose;.model('Order', orderSchema);

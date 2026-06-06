@@ -29,8 +29,8 @@ const createApplication = Joi.object().keys({
   currentPosition: Joi.string().min(2).max(100).allow(''),
   expectedSalary: Joi.number().min(0).max(100000000).allow(0),
   coverLetter: Joi.string().min(10).max(5000).allow(''),
-  skills: Joi.array().items(Joi.string().min(2).max(50)).allow([]),
-  languages: Joi.array().items(Joi.string().min(2).max(50)).allow([]),
+  skills: Joi.array().items(Joi.string().min(2).max(50)).optional(),
+  languages: Joi.array().items(Joi.string().min(2).max(50)).optional(),
   // Files are handled by multer, so their validation will be in the service/controller
   // passportPhoto: fileSchema,
   // cv: fileSchema,

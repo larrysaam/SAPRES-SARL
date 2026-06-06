@@ -1,30 +1,36 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 const assetSchema = new mongoose.Schema(
   {
-    url: {
+    publicId: {
       type: String,
       required: true
     },
-
-    publicId: String,
-
-    type: {
+    secureUrl: {
       type: String,
-      enum: ['image', 'video', 'document'],
       required: true
     },
-
-    size: Number,
-
-    uploadedBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User'
-    }
+    originalName: {
+      type: String,
+      required: true
+    },
+    format: {
+      type: String,
+      required: true
+    },
+    bytes: {
+      type: Number,
+      required: true
+    },
+    resourceType: {
+      type: String,
+      enum: ['image', 'raw'],
+      default: 'raw'
+    },
   },
   {
     timestamps: true
   }
 );
 
-module.exports = mongoose.model('Asset', assetSchema);
+export { assetSchema };

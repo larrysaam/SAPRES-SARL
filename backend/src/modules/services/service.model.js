@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const slugify = require('../../utils/slugify'); // Utility to generate URL-friendly slugs
+import mongoose from 'mongoose';
+import slugify from '../../utils/slugify.js'; // Utility to generate URL-friendly slugs
 
 // Schema for image objects stored in Cloudinary
 const imageSchema = new mongoose.Schema({
@@ -128,4 +128,4 @@ serviceSchema.pre(/^find/, function (next) {
 // Create the Mongoose model for Service
 const Service = mongoose.model('Service', serviceSchema);
 
-module.exports = Service;
+export default Service;

@@ -1,4 +1,4 @@
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
 
 // Schema for image attachments
 const attachmentSchema = new mongoose.Schema({
@@ -163,4 +163,4 @@ quoteSchema.pre(/^find/, function (next) {
 // Create the Mongoose model for Quote
 const Quote = mongoose.model('Quote', quoteSchema);
 
-module.exports = Quote;
+export default Quote;

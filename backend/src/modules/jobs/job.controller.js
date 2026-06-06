@@ -1,5 +1,5 @@
-const JobService = require('./job.service');
-const ApiResponse = require('../../utils/ApiResponse');
+import JobService from './job.service.js';
+import ApiResponse from '../../utils/ApiResponse.js';
 
 class JobController {
   static async getAll(req, res, next) {
@@ -58,4 +58,4 @@ class JobController {
   }
 }
 
-module.exports = JobController;
+export default JobController;

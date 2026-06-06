@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
 const createOrderSchema = Joi.object({
   customerName: Joi.string().required(),
@@ -25,7 +25,7 @@ const updateOrderSchema = Joi.object({
   paymentStatus: Joi.string().valid('pending', 'paid', 'failed', 'refunded').optional(),
 });
 
-module.exports = {
+export default {
   createOrderSchema,
   updateOrderSchema,
 };

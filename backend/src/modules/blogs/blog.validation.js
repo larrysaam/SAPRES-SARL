@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
 const createBlogSchema = Joi.object({
   title: Joi.string().required(),
@@ -42,7 +42,7 @@ const updateBlogSchema = Joi.object({
   seoDescription: Joi.string().optional(),
 });
 
-module.exports = {
+export default {
   createBlogSchema,
   updateBlogSchema,
 };

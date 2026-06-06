@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const { assetSchema } = require('../../schemas/asset.schema');
-const { slugify } = require('../../utils/slugify');
+import mongoose from 'mongoose';
+import { assetSchema } from '../../schemas/asset.schema.js';
+import { slugify } from '../../utils/slugify.js';
 
 const categoryStatus = ['active', 'inactive'];
 
@@ -102,4 +102,4 @@ categorySchema.statics.isNameTaken = async function (name, excludeCategoryId) {
 
 const Category = mongoose.model('Category', categorySchema);
 
-module.exports = Category;
+export default Category;

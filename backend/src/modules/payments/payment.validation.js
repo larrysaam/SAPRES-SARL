@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
 const createPaymentSchema = Joi.object({
   order: Joi.string().required(),
@@ -11,7 +11,7 @@ const updatePaymentSchema = Joi.object({
   providerReference: Joi.string().optional(),
 });
 
-module.exports = {
+export default {
   createPaymentSchema,
   updatePaymentSchema,
 };

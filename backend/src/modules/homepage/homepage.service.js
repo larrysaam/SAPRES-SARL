@@ -1,7 +1,7 @@
-const Homepage = require('./homepage.model');
-const ApiError = require('../../utils/ApiError');
-const cloudinary = require('../../config/cloudinary');
-const httpStatus = require('http-status');
+import Homepage from './homepage.model.js';
+import { ApiError } from '../../utils/ApiError.js';
+import cloudinary from '../../config/cloudinary.js';
+import httpStatus from 'http-status';
 
 /**
  * Get homepage content
@@ -85,7 +85,7 @@ const uploadHeroVideo = async (file) => {
   return homepage;
 };
 
-module.exports = {
+export default {
   getHomepage,
   updateHomepage,
   uploadHeroImage,

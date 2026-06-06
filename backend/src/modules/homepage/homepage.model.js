@@ -1,5 +1,5 @@
-const mongoose = require('mongoose');
-const { assetSchema } = require('../../schemas/asset.schema');
+import mongoose from 'mongoose';
+import { assetSchema } from '../../schemas/asset.schema.js';
 
 const statisticSchema = new mongoose.Schema(
   {
@@ -25,7 +25,6 @@ const featuredProjectSchema = new mongoose.Schema(
   {
     _id: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', required: true },
     title: { type: String, required: true, trim: true },
-    slug: { type: String, required: true, trim: true },
     location: { type: String, required: true, trim: true },
     coverImage: { type: assetSchema, required: true },
   },
@@ -86,4 +85,4 @@ const homepageSchema = new mongoose.Schema(
 
 const Homepage = mongoose.model('Homepage', homepageSchema);
 
-module.exports = Homepage;
+export default Homepage;

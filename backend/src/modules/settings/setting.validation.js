@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
 const workingHoursSchema = Joi.object({
   monday: Joi.string().allow('').optional(),
@@ -49,7 +49,7 @@ const uploadFaviconSchema = Joi.object({
     .description('Favicon file (ico, png, jpg, jpeg, svg, webp, max 5MB)'),
 });
 
-module.exports = {
+export default {
   updateSettingsSchema,
   uploadLogoSchema,
   uploadFaviconSchema,

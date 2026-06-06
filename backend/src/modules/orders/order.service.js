@@ -1,6 +1,6 @@
-const Order = require('./order.model');
-const ApiError = require('../../utils/ApiError');
-const generateOrderNumber = require('../../utils/generateOrderNumber');
+import Order from './order.model.js';
+import { ApiError } from '../../utils/ApiError.js';
+import generateOrderNumber from '../../utils/generateOrderNumber.js';
 
 class OrderService {
   static async create(payload) {
@@ -43,4 +43,4 @@ class OrderService {
   }
 }
 
-module.exports = OrderService;
+export default OrderService;

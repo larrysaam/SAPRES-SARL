@@ -1,4 +1,4 @@
-const Joi = require('joi');
+import Joi from 'joi';
 
 // Joi schema for customer details
 const customerSchema = Joi.object({
@@ -56,7 +56,7 @@ const scheduleSiteVisitSchema = Joi.object({
   assignedEngineer: Joi.string().required().min(3).max(100),
 });
 
-module.exports = {
+export default {
   requestQuoteSchema,
   updateQuoteStatusSchema,
   addQuoteNoteSchema,

@@ -1,5 +1,5 @@
-const Job = require('./job.model');
-const ApiError = require('../../utils/ApiError');
+import Job from './job.model.js';
+import { ApiError } from '../../utils/ApiError.js';
 
 class JobService {
   static async create(payload) {
@@ -40,4 +40,4 @@ class JobService {
   }
 }
 
-module.exports = JobService;
+export default JobService;

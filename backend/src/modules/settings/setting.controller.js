@@ -1,7 +1,7 @@
-const httpStatus = require('http-status');
-const { settingService } = require('../services');
-const ApiError = require('../../utils/ApiError');
-const ApiResponse = require('../../utils/ApiResponse');
+import httpStatus from 'http-status';
+import  settingService  from './setting.service.js';
+import { ApiError } from '../../utils/ApiError.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
 
 const getSettingsController = async (req, res, next) => {
   try {
@@ -55,7 +55,7 @@ const uploadFaviconController = async (req, res, next) => {
   }
 };
 
-module.exports = {
+export default {
   getSettingsController,
   updateSettingsController,
   uploadLogoController,

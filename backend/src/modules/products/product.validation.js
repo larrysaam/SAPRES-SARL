@@ -1,5 +1,5 @@
-const Joi = require('joi');
-const { objectId } = require('../../middlewares/validate.middleware');
+import Joi from 'joi';
+import { objectId } from '../../middlewares/validate.middleware.js';
 
 const productStatus = ['draft', 'published', 'archived'];
 const productCurrency = ['XAF', 'USD', 'EUR'];
@@ -84,7 +84,7 @@ const uploadDatasheetSchema = Joi.object({
     .description('Product datasheet file (pdf, max 10MB)'),
 });
 
-module.exports = {
+export default {
   createProductSchema,
   updateProductSchema,
   getProductsSchema,

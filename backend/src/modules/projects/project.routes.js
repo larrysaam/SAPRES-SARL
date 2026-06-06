@@ -1,10 +1,10 @@
-const express = require('express');
+import express from 'express';
 const router = express.Router();
-const projectController = require('./project.controller');
-const authMiddleware = require('../../middlewares/auth.middleware');
-const roleMiddleware = require('../../middlewares/role.middleware');
-const { uploadSingle, uploadMultiple } = require('../../middlewares/upload.middleware');
-const { createProjectSchema, updateProjectSchema, reorderProjectsSchema } = require('./project.validation');
+import projectController from './project.controller.js';
+import authMiddleware from '../../middlewares/auth.middleware.js';
+import roleMiddleware from '../../middlewares/role.middleware.js';
+import { uploadSingle, uploadMultiple } from '../../middlewares/upload.middleware.js';
+import { createProjectSchema, updateProjectSchema, reorderProjectsSchema } from './project.validation.js';
 
 // Public routes
 router.get('/', projectController.getAllProjects);
@@ -56,4 +56,4 @@ router.patch(
   projectController.reorderProjects
 );
 
-module.exports = router;
+export default router;
