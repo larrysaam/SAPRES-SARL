@@ -2,7 +2,6 @@ import express from 'express';
 import auth from '../../middlewares/auth.middleware.js';
 import validate from '../../middlewares/validate.middleware.js';
 import authorize from '../../middlewares/role.middleware.js';
-import { uploadSingle } from '../../middlewares/upload.middleware.js';
 import categoryValidation from './category.validation.js';
 import categoryController from './category.controller.js';
 
@@ -36,7 +35,6 @@ router
 router.post(
   '/:categoryId/image',
   authorize(['super_admin', 'sales_admin']),
-  uploadSingle('image'),
   validate(categoryValidation.uploadCategoryImageSchema),
   categoryController.uploadCategoryImageController
 );
@@ -44,7 +42,6 @@ router.post(
 router.post(
   '/:categoryId/icon',
   authorize(['super_admin', 'sales_admin']),
-  uploadSingle('icon'),
   validate(categoryValidation.uploadCategoryIconSchema),
   categoryController.uploadCategoryIconController
 );

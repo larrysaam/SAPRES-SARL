@@ -26,7 +26,10 @@ const requestQuoteSchema = Joi.object({
   monthlyBill: Joi.number().min(0).optional(),
   usageDescription: Joi.string().optional().allow(''),
   requirements: Joi.string().optional().allow(''),
-  // attachments are handled by multer, not Joi
+  attachments: Joi.array().items(Joi.object({
+    secure_url: Joi.string().uri().required(),
+    public_id: Joi.string().required(),
+  })).optional().default([]),
 });
 
 // Joi schema for updating a quote's status

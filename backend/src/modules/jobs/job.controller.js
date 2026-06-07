@@ -1,61 +1,123 @@
+
 import JobService from './job.service.js';
-import ApiResponse from '../../utils/ApiResponse.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
+import { ApiError } from '../../utils/ApiError.js';
+import httpStatus from 'http-status';
 
-class JobController {
-  static async getAll(req, res, next) {
-    try {
-      const { page, limit, featured, status, department, search } = req.query;
-      const result = await JobService.getAll({ page, limit, featured, status, department, search });
-      res.json(result);
-    } catch (err) {
-      next(err);
-    }
+const createJobController = async (req, res, next) => {
+  try {
+    const job = await JobService.createJob(req.body);
+    res
+      .status(httpStatus.CREATED)
+      .send(new ApiResponse(httpStatus.CREATED, job, 'Job created successfully'));
+  } catch (error) {
+    next(error);
   }
+};
 
-  static async getBySlug(req, res, next) {
-    try {
-      const job = await JobService.getBySlug(req.params.slug);
-      res.json(ApiResponse.success(job));
-    } catch (err) {
-      next(err);
-    }
+const getJobsController = async (req, res, next) => {
+  try {
+    const filter = {};
+    const options = {
+      limit: req.query.limit,
+      page: req.query.page,
+      sortBy: req.query.sort ? req.query.sort : undefined,
+      search: req.query.search,
+      department: req.query.department,
+      featured: req.query.featured,
+      status: req.query.status,
+    };
+    const result = await JobService.queryJobs(filter, options);
+    res
+      .status(httpStatus.OK)
+      .send(
+        new ApiResponse(httpStatus.OK, result.data, 'Jobs retrieved successfully', result.page, result.limit, result.totalDocuments, result.totalPages)
+      );
+  } catch (error) {
+    next(error);
   }
+};
 
-  static async getById(req, res, next) {
-    try {
-      const job = await JobService.getById(req.params.id);
-      res.json(ApiResponse.success(job));
-    } catch (err) {
-      next(err);
-    }
+const getFeaturedJobsController = async (req, res, next) => {
+  try {
+    const jobs = await JobService.getFeaturedJobs();
+    res
+      .status(httpStatus.OK)
+      .send(new ApiResponse(httpStatus.OK, jobs, 'Featured jobs retrieved successfully'));
+  } catch (error) {
+    next(error);
   }
+};
 
-  static async create(req, res, next) {
-    try {
-      const job = await JobService.create(req.body);
-      res.status(201).json(ApiResponse.success(job, 'Job created successfully'));
-    } catch (err) {
-      next(err);
+const getJobController = async (req, res, next) => {
+  try {
+    const job = await JobService.getJobBySlug(req.params.slug);
+    if (!job) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Job not found');
     }
+    res
+      .status(httpStatus.OK)
+      .send(new ApiResponse(httpStatus.OK, job, 'Job retrieved successfully'));
+  } catch (error) {
+    next(error);
   }
+};
 
-  static async update(req, res, next) {
-    try {
-      const job = await JobService.update(req.params.id, req.body);
-      res.json(ApiResponse.success(job, 'Job updated successfully'));
-    } catch (err) {
-      next(err);
+const getJobByIdController = async (req, res, next) => {
+  try {
+    const job = await JobService.getJobById(req.params.jobId);
+    if (!job) {
+      throw new ApiError(httpStatus.NOT_FOUND, 'Job not found');
     }
+    res
+      .status(httpStatus.OK)
+      .send(new ApiResponse(httpStatus.OK, job, 'Job retrieved successfully'));
+  } catch (error) {
+    next(error);
   }
+};
 
-  static async delete(req, res, next) {
-    try {
-      await JobService.delete(req.params.id);
-      res.json(ApiResponse.success(null, 'Job deleted successfully'));
-    } catch (err) {
-      next(err);
-    }
+const updateJobController = async (req, res, next) => {
+  try {
+    const job = await JobService.updateJobById(req.params.jobId, req.body);
+    res
+      .status(httpStatus.OK)
+      .send(new ApiResponse(httpStatus.OK, job, 'Job updated successfully'));
+  } catch (error) {
+    next(error);
   }
-}
+};
 
-export default JobController;
+const deleteJobController = async (req, res, next) => {
+  try {
+    await JobService.deleteJobById(req.params.jobId);
+    res
+      .status(httpStatus.OK)
+      .send(new ApiResponse(httpStatus.OK, null, 'Job deleted successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+const updateJobStatusController = async (req, res, next) => {
+  try {
+    const { status } = req.body;
+    const job = await JobService.updateJobStatus(req.params.jobId, status);
+    res
+      .status(httpStatus.OK)
+      .send(new ApiResponse(httpStatus.OK, job, 'Job status updated successfully'));
+  } catch (error) {
+    next(error);
+  }
+};
+
+export default {
+  createJobController,
+  getJobsController,
+  getFeaturedJobsController,
+  getJobController,
+  getJobByIdController,
+  updateJobController,
+  deleteJobController,
+  updateJobStatusController,
+};

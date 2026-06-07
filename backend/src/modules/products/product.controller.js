@@ -86,10 +86,11 @@ const deleteProductController = async (req, res, next) => {
 
 const uploadProductImagesController = async (req, res, next) => {
   try {
-    if (!req.files || req.files.length === 0) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'No image files provided');
+    const { images } = req.body;
+    if (!images || images.length === 0) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'No image data provided');
     }
-    const product = await productService.uploadProductImages(req.params.productId, req.files);
+    const product = await productService.uploadProductImages(req.params.productId, images);
     res
       .status(httpStatus.OK)
       .send(
@@ -113,10 +114,11 @@ const deleteProductImageController = async (req, res, next) => {
 
 const uploadDatasheetController = async (req, res, next) => {
   try {
-    if (!req.file) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'No datasheet file provided');
+    const { datasheet } = req.body;
+    if (!datasheet || !datasheet.secure_url || !datasheet.public_id) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'No datasheet data provided');
     }
-    const product = await productService.uploadDatasheet(req.params.productId, req.file);
+    const product = await productService.uploadDatasheet(req.params.productId, datasheet);
     res
       .status(httpStatus.OK)
       .send(

@@ -1,43 +1,70 @@
+
 import Job from './job.model.js';
 import { ApiError } from '../../utils/ApiError.js';
+import httpStatus from 'http-status';
 
-class JobService {
-  static async create(payload) {
-    const job = await Job.create(payload);
-    return job;
+const createJob = async (jobBody) => {
+  const job = await Job.create(jobBody);
+  return job;
+};
+
+const queryJobs = async (filter, options) => {
+  const jobs = await Job.paginate(filter, options);
+  return jobs;
+};
+
+const getJobBySlug = async (slug) => {
+  const job = await Job.findOne({ slug, deletedAt: { $exists: false } });
+  return job;
+};
+
+const getJobById = async (id) => {
+  const job = await Job.findById(id);
+  return job;
+};
+
+const updateJobById = async (jobId, updateBody) => {
+  const job = await getJobById(jobId);
+  if (!job) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Job not found');
   }
+  Object.assign(job, updateBody);
+  await job.save();
+  return job;
+};
 
-  static async getAll({ page = 1, limit = 20, status = null } = {}) {
-    const skip = (page - 1) * limit;
-    const query = status ? { status } : {};
-    const jobs = await Job.find(query)
-      .skip(skip)
-      .limit(limit)
-      .lean();
-    const total = await Job.countDocuments(query);
-    return {
-      data: jobs,
-      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
-    };
+const deleteJobById = async (jobId) => {
+  const job = await getJobById(jobId);
+  if (!job) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Job not found');
   }
+  job.deletedAt = new Date();
+  await job.save();
+  return job;
+};
 
-  static async getById(id) {
-    const job = await Job.findById(id);
-    if (!job) throw new ApiError('Job not found', 404);
-    return job;
+const getFeaturedJobs = async () => {
+  const jobs = await Job.find({ featured: true, deletedAt: { $exists: false } }).limit(5);
+  return jobs;
+};
+
+const updateJobStatus = async (jobId, status) => {
+  const job = await getJobById(jobId);
+  if (!job) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Job not found');
   }
+  job.status = status;
+  await job.save();
+  return job;
+};
 
-  static async update(id, payload) {
-    const job = await Job.findByIdAndUpdate(id, payload, { new: true });
-    if (!job) throw new ApiError('Job not found', 404);
-    return job;
-  }
-
-  static async delete(id) {
-    const job = await Job.findByIdAndDelete(id);
-    if (!job) throw new ApiError('Job not found', 404);
-    return job;
-  }
-}
-
-export default JobService;
+export default {
+  createJob,
+  queryJobs,
+  getJobBySlug,
+  getJobById,
+  updateJobById,
+  deleteJobById,
+  getFeaturedJobs,
+  updateJobStatus,
+};

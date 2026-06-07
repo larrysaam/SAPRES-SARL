@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { assetSchema } from '../../schemas/asset.schema.js';
-import { slugify } from '../../utils/slugify.js';
+import  {slugify}  from '../../utils/slugify.js';
 
 const productStatus = ['draft', 'published', 'archived'];
 const productCurrency = ['XAF', 'USD', 'EUR'];

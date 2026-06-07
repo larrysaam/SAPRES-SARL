@@ -1,5 +1,6 @@
 import Blog from './blog.model.js';
 import { ApiError } from '../../utils/ApiError.js';
+import { deleteFileFromCloudinary } from '../../utils/cloudinary.util.js';
 
 class BlogService {
   static async create(payload, userId) {
@@ -70,8 +71,24 @@ class BlogService {
   }
 
   static async delete(id) {
-    const blog = await Blog.findByIdAndUpdate(id, { deletedAt: new Date() }, { new: true });
+    const blog = await Blog.findById(id);
     if (!blog) throw new ApiError('Blog post not found', 404);
+
+    // Delete featured image from Cloudinary
+    if (blog.featuredImage && blog.featuredImage.publicId) {
+      await deleteFileFromCloudinary(blog.featuredImage.publicId, 'image');
+    }
+
+    // Delete gallery images from Cloudinary
+    if (blog.gallery && blog.gallery.length > 0) {
+      for (const image of blog.gallery) {
+        if (image.publicId) {
+          await deleteFileFromCloudinary(image.publicId, 'image');
+        }
+      }
+    }
+
+    await blog.deleteOne(); // Permanently delete the blog
     return blog;
   }
 

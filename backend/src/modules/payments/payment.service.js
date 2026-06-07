@@ -33,6 +33,12 @@ class PaymentService {
     if (!payment) throw new ApiError('Payment not found', 404);
     return payment;
   }
+
+  static async updatePaymentByTransactionId(transaction_id, payload) {
+    const payment = await Payment.findOneAndUpdate({ transaction_id }, payload, { new: true });
+    if (!payment) throw new ApiError('Payment not found for the given transaction ID', 404);
+    return payment;
+  }
 }
 
 export default PaymentService;

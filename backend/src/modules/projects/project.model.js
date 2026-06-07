@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import slugify from '../../utils/slugify.js';
+import {slugify} from '../../utils/slugify.js';
 
 const imageSchema = new mongoose.Schema({
   publicId: {

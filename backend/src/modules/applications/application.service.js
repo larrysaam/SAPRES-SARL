@@ -1,27 +1,8 @@
 import httpStatus from 'http-status';
 import Application from './application.model.js';
 import { ApiError } from '../../utils/ApiError.js';
-import cloudinary from '../../config/cloudinary.js';
-import Job from '../jobs/job.model.js'; // Assuming a Job model exists
-
-/**
- * Upload file to Cloudinary
- * @param {Buffer} buffer - File buffer
- * @param {string} folder - Cloudinary folder
- * @param {string} resourceType - 'image' or 'raw'
- * @returns {Promise<Object>} Cloudinary upload result
- */
-const uploadFileToCloudinary = async (buffer, folder, resourceType = 'raw') => {
-  return new Promise((resolve, reject) => {
-    cloudinary.uploader.upload_stream(
-      { folder, resource_type: resourceType },
-      (error, result) => {
-        if (error) return reject(new ApiError(httpStatus.BAD_REQUEST, `Cloudinary upload failed: ${error.message}`));
-        resolve(result);
-      }
-    ).end(buffer);
-  });
-};
+import { deleteFileFromCloudinary } from '../../utils/cloudinary.util.js';
+import Job from '../jobs/job.model.js';
 
 /**
  * Create an application
@@ -29,7 +10,7 @@ const uploadFileToCloudinary = async (buffer, folder, resourceType = 'raw') => {
  * @param {Object} files
  * @returns {Promise<Application>}
  */
-const createApplication = async (applicationBody, files) => {
+const createApplication = async (applicationBody) => {
   const job = await Job.findById(applicationBody.jobId);
   if (!job) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Job not found');
@@ -40,90 +21,29 @@ const createApplication = async (applicationBody, files) => {
     job: {
       _id: job._id,
       title: job.title,
-      department: job.department, // Assuming job has a department field
+      department: job.department,
     },
   };
 
-  // Handle file uploads
-  if (files.passportPhoto && files.passportPhoto[0]) {
-    const result = await uploadFileToCloudinary(
-      files.passportPhoto[0].buffer,
-      `sapres/applications/${job._id}/passport-photos`,
-      'image'
-    );
-    newApplication.passportPhoto = {
-      publicId: result.public_id,
-      secureUrl: result.secure_url,
-      originalName: files.passportPhoto[0].originalname,
-      format: result.format,
-      bytes: files.passportPhoto[0].size,
-      resourceType: result.resource_type,
-    };
+  // Handle file uploads - directly assign secure_url and public_id from applicationBody
+  if (applicationBody.passportPhoto) {
+    newApplication.passportPhoto = applicationBody.passportPhoto;
   }
 
-  if (files.cv && files.cv[0]) {
-    const result = await uploadFileToCloudinary(
-      files.cv[0].buffer,
-      `sapres/applications/${job._id}/cvs`
-    );
-    newApplication.cv = {
-      publicId: result.public_id,
-      secureUrl: result.secure_url,
-      originalName: files.cv[0].originalname,
-      format: result.format,
-      bytes: files.cv[0].size,
-      resourceType: result.resource_type,
-    };
+  if (applicationBody.cv) {
+    newApplication.cv = applicationBody.cv;
   }
 
-  if (files.idCard && files.idCard[0]) {
-    const result = await uploadFileToCloudinary(
-      files.idCard[0].buffer,
-      `sapres/applications/${job._id}/id-cards`,
-      'image'
-    );
-    newApplication.idCard = {
-      publicId: result.public_id,
-      secureUrl: result.secure_url,
-      originalName: files.idCard[0].originalname,
-      format: result.format,
-      bytes: files.idCard[0].size,
-      resourceType: result.resource_type,
-    };
+  if (applicationBody.idCard) {
+    newApplication.idCard = applicationBody.idCard;
   }
 
-  if (files.diploma && files.diploma[0]) {
-    const result = await uploadFileToCloudinary(
-      files.diploma[0].buffer,
-      `sapres/applications/${job._id}/diplomas`
-    );
-    newApplication.diploma = {
-      publicId: result.public_id,
-      secureUrl: result.secure_url,
-      originalName: files.diploma[0].originalname,
-      format: result.format,
-      bytes: files.diploma[0].size,
-      resourceType: result.resource_type,
-    };
+  if (applicationBody.diploma) {
+    newApplication.diploma = applicationBody.diploma;
   }
 
-  if (files.additionalDocuments && files.additionalDocuments.length > 0) {
-    newApplication.additionalDocuments = await Promise.all(
-      files.additionalDocuments.map(async (file) => {
-        const result = await uploadFileToCloudinary(
-          file.buffer,
-          `sapres/applications/${job._id}/additional-documents`
-        );
-        return {
-          publicId: result.public_id,
-          secureUrl: result.secure_url,
-          originalName: file.originalname,
-          format: result.format,
-          bytes: file.size,
-          resourceType: result.resource_type,
-        };
-      })
-    );
+  if (applicationBody.additionalDocuments && applicationBody.additionalDocuments.length > 0) {
+    newApplication.additionalDocuments = applicationBody.additionalDocuments;
   }
 
   return Application.create(newApplication);
@@ -221,7 +141,22 @@ const deleteApplicationById = async (applicationId) => {
   if (!application) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Application not found');
   }
-  // TODO: Delete files from Cloudinary
+
+  // Delete files from Cloudinary
+  const filesToDelete = [
+    application.cv,
+    application.idCard,
+    application.diploma,
+    application.passportPhoto,
+    ...(application.additionalDocuments || []),
+  ];
+
+  for (const file of filesToDelete) {
+    if (file && file.publicId) {
+      await deleteFileFromCloudinary(file.publicId, file.resourceType);
+    }
+  }
+
   await application.deleteOne();
   return application;
 };

@@ -1,8 +1,8 @@
 import Category from './category.model.js';
 import { ApiError } from '../../utils/ApiError.js';
-import cloudinary from '../../config/cloudinary.js';
+import { deleteFileFromCloudinary } from '../../utils/cloudinary.util.js';
 import httpStatus from 'http-status';
-import Product from '../products/product.model.js'; // To check for products before deleting a category
+import Product from '../products/product.model.js';
 
 /**
  * Create a category
@@ -187,11 +187,11 @@ const deleteCategoryById = async (categoryId) => {
 
   // Delete image from cloudinary
   if (category.image && category.image.publicId) {
-    await cloudinary.uploader.destroy(category.image.publicId);
+    await deleteFileFromCloudinary(category.image.publicId, 'image');
   }
   // Delete icon from cloudinary
   if (category.icon && category.icon.publicId) {
-    await cloudinary.uploader.destroy(category.icon.publicId);
+    await deleteFileFromCloudinary(category.icon.publicId, 'image');
   }
 
   await category.deleteOne();
@@ -201,33 +201,21 @@ const deleteCategoryById = async (categoryId) => {
 /**
  * Upload category image
  * @param {ObjectId} categoryId
- * @param {Object} file
+ * @param {Buffer} fileBuffer
+ * @param {string} originalName
  * @returns {Promise<Category>}
  */
-const uploadCategoryImage = async (categoryId, file) => {
+const uploadCategoryImage = async (categoryId, image) => {
   const category = await getCategoryById(categoryId);
   if (!category) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Category not found');
   }
 
   if (category.image && category.image.publicId) {
-    await cloudinary.uploader.destroy(category.image.publicId);
+    await deleteFileFromCloudinary(category.image.publicId, 'image');
   }
 
-  const result = await cloudinary.uploader.upload(file.path, {
-    folder: `sapres/categories/${categoryId}`,
-    public_id: 'image',
-    resource_type: 'image',
-  });
-
-  category.image = {
-    publicId: result.public_id,
-    secureUrl: result.secure_url,
-    originalName: file.originalname,
-    format: result.format,
-    bytes: result.bytes,
-    resourceType: result.resource_type,
-  };
+  category.image = image;
   await category.save();
   return category;
 };
@@ -235,33 +223,21 @@ const uploadCategoryImage = async (categoryId, file) => {
 /**
  * Upload category icon
  * @param {ObjectId} categoryId
- * @param {Object} file
+ * @param {Buffer} fileBuffer
+ * @param {string} originalName
  * @returns {Promise<Category>}
  */
-const uploadCategoryIcon = async (categoryId, file) => {
+const uploadCategoryIcon = async (categoryId, icon) => {
   const category = await getCategoryById(categoryId);
   if (!category) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Category not found');
   }
 
   if (category.icon && category.icon.publicId) {
-    await cloudinary.uploader.destroy(category.icon.publicId);
+    await deleteFileFromCloudinary(category.icon.publicId, 'image');
   }
 
-  const result = await cloudinary.uploader.upload(file.path, {
-    folder: `sapres/categories/${categoryId}`,
-    public_id: 'icon',
-    resource_type: 'image',
-  });
-
-  category.icon = {
-    publicId: result.public_id,
-    secureUrl: result.secure_url,
-    originalName: file.originalname,
-    format: result.format,
-    bytes: result.bytes,
-    resourceType: result.resource_type,
-  };
+  category.icon = icon;
   await category.save();
   return category;
 };

@@ -1,30 +1,10 @@
 import Service from './service.model.js';
 import { ApiError } from '../../utils/ApiError.js'; // Using ApiError for consistent error handling
 import { ApiResponse } from '../../utils/ApiResponse.js'; // Using ApiResponse for consistent success responses
-import cloudinary from '../../config/cloudinary.js'; // Cloudinary configuration for image uploads
-import slugify from '../../utils/slugify.js'; // Utility to generate URL-friendly slugs
 
-// Helper function to upload image to Cloudinary
-const uploadImageToCloudinary = async (file, folder) => {
-  if (!file) return null; // If no file is provided, return null
+import { slugify } from '../../utils/slugify.js'; // Utility to generate URL-friendly slugs
 
-  // Upload the file to Cloudinary
-  const result = await cloudinary.uploader.upload(file.path, {
-    folder: `sapres/services/${folder}`, // Specify the folder in Cloudinary
-  });
-  return {
-    publicId: result.public_id,
-    secureUrl: result.secure_url,
-    format: result.format,
-    bytes: result.bytes,
-  };
-};
 
-// Helper function to delete image from Cloudinary
-const deleteImageFromCloudinary = async (publicId) => {
-  if (!publicId) return; // If no publicId is provided, do nothing
-  await cloudinary.uploader.destroy(publicId); // Destroy the image on Cloudinary
-};
 
 /**
  * Retrieves all services based on provided query parameters.
@@ -150,23 +130,19 @@ const deleteService = async (serviceId) => {
  * @returns {ApiResponse} - A response object with the uploaded image info.
  * @throws {ApiError} - If the service is not found.
  */
-const uploadFeaturedImage = async (serviceId, file) => {
+const uploadFeaturedImage = async (serviceId, imageData) => {
   const service = await Service.findById(serviceId);
   if (!service) {
     throw new ApiError(404, 'Service not found');
   }
 
-  // Delete old featured image from Cloudinary if it exists
-  if (service.featuredImage && service.featuredImage.publicId) {
-    await deleteImageFromCloudinary(service.featuredImage.publicId);
-  }
-
-  // Upload new featured image
-  const uploadedImage = await uploadImageToCloudinary(file, `${serviceId}/featured`);
-  service.featuredImage = uploadedImage; // Assign the new featured image
+  service.featuredImage = {
+    publicId: imageData.public_id,
+    secureUrl: imageData.secure_url,
+  };
   await service.save();
 
-  return new ApiResponse(200, uploadedImage, 'Featured image uploaded successfully');
+  return new ApiResponse(200, service.featuredImage, 'Featured image uploaded successfully');
 };
 
 /**
@@ -176,20 +152,21 @@ const uploadFeaturedImage = async (serviceId, file) => {
  * @returns {ApiResponse} - A response object indicating success.
  * @throws {ApiError} - If the service is not found.
  */
-const uploadGalleryImages = async (serviceId, files) => {
+const uploadGalleryImages = async (serviceId, imagesData) => {
   const service = await Service.findById(serviceId);
   if (!service) {
     throw new ApiError(404, 'Service not found');
   }
 
-  // Upload all files to Cloudinary concurrently
-  const uploadedImages = await Promise.all(
-    files.map((file) => uploadImageToCloudinary(file, `${serviceId}/gallery`))
-  );
-  service.gallery.push(...uploadedImages); // Add new images to the gallery array
+  const newGalleryImages = imagesData.map(img => ({
+    publicId: img.public_id,
+    secureUrl: img.secure_url,
+  }));
+
+  service.gallery.push(...newGalleryImages);
   await service.save();
 
-  return new ApiResponse(200, uploadedImages, 'Gallery images uploaded successfully');
+  return new ApiResponse(200, newGalleryImages, 'Gallery images uploaded successfully');
 };
 
 /**
@@ -207,7 +184,6 @@ const deleteGalleryImage = async (serviceId, imageId) => {
 
   // Check if the image to delete is the featured image
   if (service.featuredImage && service.featuredImage.publicId === imageId) {
-    await deleteImageFromCloudinary(service.featuredImage.publicId);
     service.featuredImage = undefined; // Remove featured image
   } else {
     // Find and remove the image from the gallery array
@@ -216,7 +192,6 @@ const deleteGalleryImage = async (serviceId, imageId) => {
     if (service.gallery.length === initialLength) {
       throw new ApiError(404, 'Image not found in service gallery');
     }
-    await deleteImageFromCloudinary(imageId); // Delete from Cloudinary
   }
 
   await service.save();

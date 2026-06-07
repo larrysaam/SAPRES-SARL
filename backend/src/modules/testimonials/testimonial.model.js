@@ -1,35 +1,50 @@
+
 import mongoose from 'mongoose';
 
 const testimonialSchema = new mongoose.Schema(
   {
     clientName: {
       type: String,
-      required: true
+      required: true,
+      trim: true,
     },
-
-    clientCompany: String,
-
-    clientImage: String,
-
-    content: {
+    clientTitle: {
       type: String,
-      required: true
+      trim: true,
     },
-
+    testimonialText: {
+      type: String,
+      required: true,
+    },
     rating: {
       type: Number,
       min: 1,
-      max: 5
+      max: 5,
     },
-
+    image: {
+      secure_url: String,
+      public_id: String,
+    },
     featured: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending"
+    },
+    deletedAt: Date,
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
-export default mongoose;
+testimonialSchema.query.notDeleted = function () {
+  return this.where({ deletedAt: { $exists: false } });
+};
+
+const Testimonial = mongoose.model("Testimonial", testimonialSchema);
+
+export default Testimonial;

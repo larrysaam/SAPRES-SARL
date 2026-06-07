@@ -6,20 +6,6 @@ import generateSequentialNumber from '../../utils/generateSequentialNumber.js'; 
 import { stringify } from 'csv-stringify';
 import ExcelJS from 'exceljs';
 
-// Helper function to upload image to Cloudinary
-const uploadImageToCloudinary = async (file, folder) => {
-  if (!file) return null; // If no file is provided, return null
-
-  // Upload the file to Cloudinary
-  const result = await cloudinary.uploader.upload(file.path, {
-    folder: `sapres/quotes/${folder}`, // Specify the folder in Cloudinary
-  });
-  return {
-    publicId: result.public_id,
-    secureUrl: result.secure_url,
-  };
-};
-
 // Helper function to delete image from Cloudinary
 const deleteImageFromCloudinary = async (publicId) => {
   if (!publicId) return; // If no publicId is provided, do nothing
@@ -32,11 +18,11 @@ const deleteImageFromCloudinary = async (publicId) => {
  * @param {Array<Object>} files - Array of attachment files.
  * @returns {ApiResponse} - A response object with the created quote's basic info.
  */
-const requestQuote = async (quoteData, files) => {
+const requestQuote = async (quoteData, attachments) => {
   // Find the last quote to generate a new sequential quote number
   const lastQuote = await Quote.findOne().sort({ createdAt: -1 });
-  const lastQuoteNumber = lastQuote ? parseInt(lastQuote.quoteNumber.split('-')[2]) : 0;
-  const quoteNumber = generateSequentialNumber('SAP-QT-', lastQuoteNumber);
+  const lastQuoteNumber = lastQuote ? parseInt(lastQuote.quoteNumber.split("-")[2]) : 0;
+  const quoteNumber = generateSequentialNumber("SAP-QT-", lastQuoteNumber);
 
   const newQuote = new Quote({
     quoteNumber,
@@ -56,12 +42,13 @@ const requestQuote = async (quoteData, files) => {
     requirements: quoteData.requirements,
   });
 
-  // Upload attachments if any
-  if (files && files.length > 0) {
-    const uploadedAttachments = await Promise.all(
-      files.map((file) => uploadImageToCloudinary(file, `${newQuote._id}/attachments`))
-    );
-    newQuote.attachments.push(...uploadedAttachments);
+  // Add attachments if any
+  if (attachments && attachments.length > 0) {
+    const newAttachments = attachments.map(attachment => ({
+      publicId: attachment.public_id,
+      secureUrl: attachment.secure_url,
+    }));
+    newQuote.attachments.push(...newAttachments);
   }
 
   await newQuote.save(); // Save the new quote request to the database
@@ -69,7 +56,7 @@ const requestQuote = async (quoteData, files) => {
     _id: newQuote._id,
     quoteNumber: newQuote.quoteNumber,
     status: newQuote.status,
-  }, 'Quotation request submitted successfully.');
+  }, "Quotation request submitted successfully.");
 };
 
 /**

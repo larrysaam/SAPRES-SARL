@@ -112,10 +112,12 @@ const deleteCategoryController = async (req, res, next) => {
 
 const uploadCategoryImageController = async (req, res, next) => {
   try {
-    if (!req.file) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Category image file is required');
+    const { image } = req.body;
+    if (!image || !image.secure_url || !image.public_id) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Category image data (secure_url and public_id) is required');
     }
-    const category = await categoryService.uploadCategoryImage(req.params.categoryId, req.file);
+
+    const category = await categoryService.uploadCategoryImage(req.params.categoryId, image);
     res
       .status(httpStatus.OK)
       .send(
@@ -128,10 +130,12 @@ const uploadCategoryImageController = async (req, res, next) => {
 
 const uploadCategoryIconController = async (req, res, next) => {
   try {
-    if (!req.file) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Category icon file is required');
+    const { icon } = req.body;
+    if (!icon || !icon.secure_url || !icon.public_id) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Category icon data (secure_url and public_id) is required');
     }
-    const category = await categoryService.uploadCategoryIcon(req.params.categoryId, req.file);
+
+    const category = await categoryService.uploadCategoryIcon(req.params.categoryId, icon);
     res
       .status(httpStatus.OK)
       .send(

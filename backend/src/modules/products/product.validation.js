@@ -70,18 +70,24 @@ const getProductsSchema = Joi.object({
 
 const uploadProductImagesSchema = Joi.object({
   images: Joi.array()
-    .items(Joi.any().meta({ swaggerType: 'file' }))
+    .items(
+      Joi.object({
+        secure_url: Joi.string().uri().required(),
+        public_id: Joi.string().required(),
+      })
+    )
     .min(1)
-    .max(10)
     .required()
-    .description('Product image files (jpg, jpeg, png, webp, max 5MB each)'),
+    .description('Array of image objects with secure_url and public_id'),
 });
 
 const uploadDatasheetSchema = Joi.object({
-  datasheet: Joi.any()
-    .meta({ swaggerType: 'file' })
+  datasheet: Joi.object({
+    secure_url: Joi.string().uri().required(),
+    public_id: Joi.string().required(),
+  })
     .required()
-    .description('Product datasheet file (pdf, max 10MB)'),
+    .description('Datasheet object with secure_url and public_id'),
 });
 
 export default {

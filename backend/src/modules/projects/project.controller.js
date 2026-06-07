@@ -70,10 +70,11 @@ const deleteProject = async (req, res, next) => {
 const uploadFeaturedImage = async (req, res, next) => {
   try {
     const { id } = req.params;
-    if (!req.file) {
-      throw new ApiError(400, 'No file uploaded');
+    const { secure_url, public_id } = req.body;
+    if (!secure_url || !public_id) {
+      throw new ApiError(400, "Missing secure_url or public_id");
     }
-    const response = await projectService.uploadFeaturedImage(id, req.file);
+    const response = await projectService.uploadFeaturedImage(id, { secure_url, public_id });
     res.status(response.statusCode).json(response);
   } catch (error) {
     next(error);
@@ -84,10 +85,11 @@ const uploadFeaturedImage = async (req, res, next) => {
 const uploadGalleryImages = async (req, res, next) => {
   try {
     const { id } = req.params;
-    if (!req.files || req.files.length === 0) {
-      throw new ApiError(400, 'No files uploaded');
+    const images = req.body.images; // Assuming req.body.images is an array of { secure_url, public_id }
+    if (!images || images.length === 0) {
+      throw new ApiError(400, "No images provided");
     }
-    const response = await projectService.uploadGalleryImages(id, req.files);
+    const response = await projectService.uploadGalleryImages(id, images);
     res.status(response.statusCode).json(response);
   } catch (error) {
     next(error);
@@ -98,10 +100,11 @@ const uploadGalleryImages = async (req, res, next) => {
 const uploadBeforeImages = async (req, res, next) => {
   try {
     const { id } = req.params;
-    if (!req.files || req.files.length === 0) {
-      throw new ApiError(400, 'No files uploaded');
+    const images = req.body.images; // Assuming req.body.images is an array of { secure_url, public_id }
+    if (!images || images.length === 0) {
+      throw new ApiError(400, "No images provided");
     }
-    const response = await projectService.uploadBeforeImages(id, req.files);
+    const response = await projectService.uploadBeforeImages(id, images);
     res.status(response.statusCode).json(response);
   } catch (error) {
     next(error);
@@ -112,10 +115,11 @@ const uploadBeforeImages = async (req, res, next) => {
 const uploadAfterImages = async (req, res, next) => {
   try {
     const { id } = req.params;
-    if (!req.files || req.files.length === 0) {
-      throw new ApiError(400, 'No files uploaded');
+    const images = req.body.images; // Assuming req.body.images is an array of { secure_url, public_id }
+    if (!images || images.length === 0) {
+      throw new ApiError(400, "No images provided");
     }
-    const response = await projectService.uploadAfterImages(id, req.files);
+    const response = await projectService.uploadAfterImages(id, images);
     res.status(response.statusCode).json(response);
   } catch (error) {
     next(error);

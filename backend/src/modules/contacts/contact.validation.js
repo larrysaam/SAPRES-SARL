@@ -19,7 +19,7 @@ const addContactNoteSchema = Joi.object({
   note: Joi.string().required().min(5).max(500),
 });
 
-export default {
+export {
   submitContactSchema,
   updateContactStatusSchema,
   addContactNoteSchema,

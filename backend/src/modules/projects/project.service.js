@@ -2,20 +2,7 @@ import Project from './project.model.js';
 import { ApiError } from '../../utils/ApiError.js';
 import { ApiResponse } from '../../utils/ApiResponse.js';
 import cloudinary from '../../config/cloudinary.js';
-import slugify from '../../utils/slugify.js';
-
-// Helper function to upload image to Cloudinary
-const uploadImageToCloudinary = async (file, folder) => {
-  if (!file) return null;
-
-  const result = await cloudinary.uploader.upload(file.path, {
-    folder: `sapres/projects/${folder}`,
-  });
-  return {
-    publicId: result.public_id,
-    secureUrl: result.secure_url,
-  };
-};
+import {slugify} from '../../utils/slugify.js';
 
 // Helper function to delete image from Cloudinary
 const deleteImageFromCloudinary = async (publicId) => {
@@ -114,10 +101,10 @@ const deleteProject = async (projectId) => {
 };
 
 // Upload featured image
-const uploadFeaturedImage = async (projectId, file) => {
+const uploadFeaturedImage = async (projectId, imageData) => {
   const project = await Project.findById(projectId);
   if (!project) {
-    throw new ApiError(404, 'Project not found');
+    throw new ApiError(404, "Project not found");
   }
 
   // Delete old featured image if exists
@@ -125,59 +112,64 @@ const uploadFeaturedImage = async (projectId, file) => {
     await deleteImageFromCloudinary(project.featuredImage.publicId);
   }
 
-  const uploadedImage = await uploadImageToCloudinary(file, `${projectId}/featured`);
-  project.featuredImage = uploadedImage;
+  project.featuredImage = { publicId: imageData.public_id, secureUrl: imageData.secure_url };
   await project.save();
 
-  return new ApiResponse(200, uploadedImage, 'Featured image uploaded successfully');
+  return new ApiResponse(200, project.featuredImage, "Featured image uploaded successfully");
 };
 
 // Upload gallery images
-const uploadGalleryImages = async (projectId, files) => {
+const uploadGalleryImages = async (projectId, imagesData) => {
   const project = await Project.findById(projectId);
   if (!project) {
-    throw new ApiError(404, 'Project not found');
+    throw new ApiError(404, "Project not found");
   }
 
-  const uploadedImages = await Promise.all(
-    files.map((file) => uploadImageToCloudinary(file, `${projectId}/gallery`))
-  );
-  project.gallery.push(...uploadedImages);
+  const newImages = imagesData.map(image => ({
+    publicId: image.public_id,
+    secureUrl: image.secure_url,
+  }));
+
+  project.gallery.push(...newImages);
   await project.save();
 
-  return new ApiResponse(200, null, 'Gallery images uploaded successfully');
+  return new ApiResponse(200, null, "Gallery images uploaded successfully");
 };
 
 // Upload before images
-const uploadBeforeImages = async (projectId, files) => {
+const uploadBeforeImages = async (projectId, imagesData) => {
   const project = await Project.findById(projectId);
   if (!project) {
-    throw new ApiError(404, 'Project not found');
+    throw new ApiError(404, "Project not found");
   }
 
-  const uploadedImages = await Promise.all(
-    files.map((file) => uploadImageToCloudinary(file, `${projectId}/before`))
-  );
-  project.beforeImages.push(...uploadedImages);
+  const newImages = imagesData.map(image => ({
+    publicId: image.public_id,
+    secureUrl: image.secure_url,
+  }));
+
+  project.beforeImages.push(...newImages);
   await project.save();
 
-  return new ApiResponse(200, null, 'Before images uploaded successfully');
+  return new ApiResponse(200, null, "Before images uploaded successfully");
 };
 
 // Upload after images
-const uploadAfterImages = async (projectId, files) => {
+const uploadAfterImages = async (projectId, imagesData) => {
   const project = await Project.findById(projectId);
   if (!project) {
-    throw new ApiError(404, 'Project not found');
+    throw new ApiError(404, "Project not found");
   }
 
-  const uploadedImages = await Promise.all(
-    files.map((file) => uploadImageToCloudinary(file, `${projectId}/after`))
-  );
-  project.afterImages.push(...uploadedImages);
+  const newImages = imagesData.map(image => ({
+    publicId: image.public_id,
+    secureUrl: image.secure_url,
+  }));
+
+  project.afterImages.push(...newImages);
   await project.save();
 
-  return new ApiResponse(200, null, 'After images uploaded successfully');
+  return new ApiResponse(200, null, "After images uploaded successfully");
 };
 
 // Delete project image

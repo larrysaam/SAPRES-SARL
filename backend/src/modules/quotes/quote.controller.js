@@ -18,8 +18,11 @@ const validate = (schema) => (req, res, next) => {
  */
 const requestQuote = async (req, res, next) => {
   try {
-    // req.files is populated by multer for multiple file uploads
-    const response = await quoteService.requestQuote(req.body, req.files);
+    const { attachments } = req.body; // Expect an array of { secure_url, public_id }
+    if (attachments && (!Array.isArray(attachments) || attachments.some(att => !att.secure_url || !att.public_id))) {
+      throw new ApiError(400, "Invalid attachments format. Each attachment must have secure_url and public_id.");
+    }
+    const response = await quoteService.requestQuote(req.body, attachments);
     res.status(response.statusCode).json(response);
   } catch (error) {
     next(error); // Pass any errors to the error handling middleware

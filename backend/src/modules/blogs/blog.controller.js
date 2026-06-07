@@ -1,6 +1,5 @@
 import BlogService from './blog.service.js';
-import ApiResponse from '../../utils/ApiResponse.js';
-import { uploadToCloudinary } from '../../middlewares/upload.middleware.js';
+import {ApiResponse} from '../../utils/ApiResponse.js';
 import cloudinary from '../../config/cloudinary.js';
 
 class BlogController {
@@ -61,16 +60,13 @@ class BlogController {
 
   static async uploadFeaturedImage(req, res, next) {
     try {
-      if (!req.file) throw new Error('No image file provided');
+      const { featuredImage } = req.body;
+      if (!featuredImage || !featuredImage.secure_url || !featuredImage.public_id) {
+        throw new Error('No featured image data provided');
+      }
       
-      const result = await uploadToCloudinary(req.file.buffer, `sapres/blogs/${req.params.id}`);
-      const imageData = {
-        publicId: result.public_id,
-        secureUrl: result.secure_url
-      };
-      
-      const blog = await BlogService.uploadFeaturedImage(req.params.id, imageData);
-      res.json(ApiResponse.success(imageData, 'Featured image uploaded successfully'));
+      const blog = await BlogService.uploadFeaturedImage(req.params.id, featuredImage);
+      res.json(ApiResponse.success(featuredImage, 'Featured image uploaded successfully'));
     } catch (err) {
       next(err);
     }
@@ -78,17 +74,8 @@ class BlogController {
 
   static async uploadGallery(req, res, next) {
     try {
-      if (!req.files || req.files.length === 0) throw new Error('No image files provided');
-      
-      const uploadPromises = req.files.map(file =>
-        uploadToCloudinary(file.buffer, `sapres/blogs/${req.params.id}/gallery`)
-      );
-      
-      const results = await Promise.all(uploadPromises);
-      const images = results.map(result => ({
-        publicId: result.public_id,
-        secureUrl: result.secure_url
-      }));
+      const { images } = req.body;
+      if (!images || images.length === 0) throw new Error('No image data provided');
       
       await BlogService.uploadGallery(req.params.id, images);
       res.json(ApiResponse.success(images, 'Gallery uploaded successfully'));

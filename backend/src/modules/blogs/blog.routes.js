@@ -4,7 +4,6 @@ import BlogController from './blog.controller.js';
 import auth from '../../middlewares/auth.middleware.js';
 import roles from '../../middlewares/role.middleware.js';
 import validate from '../../middlewares/validate.middleware.js';
-import { uploadSingle, uploadArray } from '../../middlewares/upload.middleware.js';
 import { createBlogSchema, updateBlogSchema } from './blog.validation.js';
 
 // Public routes
@@ -22,8 +21,8 @@ router.put('/:id', auth, validate(updateBlogSchema), BlogController.update);
 router.delete('/:id', auth, BlogController.delete);
 
 // Image upload routes
-router.post('/:id/featured-image', auth, uploadSingle('image'), BlogController.uploadFeaturedImage);
-router.post('/:id/gallery', auth, uploadArray('images'), BlogController.uploadGallery);
+router.post('/:id/featured-image', auth, BlogController.uploadFeaturedImage);
+router.post('/:id/gallery', auth, BlogController.uploadGallery);
 router.delete('/:blogId/gallery/:imageId', auth, BlogController.deleteGalleryImage);
 
 // Statistics route (Admin only)

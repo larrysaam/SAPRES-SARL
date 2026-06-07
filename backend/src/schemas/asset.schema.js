@@ -4,32 +4,36 @@ const assetSchema = new mongoose.Schema(
   {
     publicId: {
       type: String,
-      required: true
+      required: true,
     },
     secureUrl: {
       type: String,
-      required: true
+      required: true,
     },
     originalName: {
       type: String,
-      required: true
     },
     format: {
       type: String,
-      required: true
+    },
+    width: {
+      type: Number,
+    },
+    height: {
+      type: Number,
     },
     bytes: {
       type: Number,
-      required: true
     },
     resourceType: {
       type: String,
-      enum: ['image', 'raw'],
-      default: 'raw'
+      enum: ['image', 'video', 'raw'],
+      default: 'image',
     },
   },
   {
-    timestamps: true
+    _id: false,
+    timestamps: true,
   }
 );
 

@@ -71,7 +71,7 @@ const reorderProjectsSchema = Joi.object({
   ).required(),
 });
 
-export default {
+export {
   createProjectSchema,
   updateProjectSchema,
   reorderProjectsSchema,

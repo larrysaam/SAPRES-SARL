@@ -2,7 +2,6 @@
 import auth from '../../middlewares/auth.middleware.js';
 import validate from '../../middlewares/validate.middleware.js';
 import authorize from '../../middlewares/role.middleware.js';
-import { uploadSingle, uploadArray } from '../../middlewares/upload.middleware.js';
 import productValidation from './product.validation.js';
 import productController from './product.controller.js';
 
@@ -36,7 +35,6 @@ router
 router.post(
   '/:productId/images',
   authorize('super_admin', 'sales_admin'),
-  uploadArray('images', 10), // Max 10 images
   validate(productValidation.uploadProductImagesSchema),
   productController.uploadProductImagesController
 );
@@ -50,7 +48,6 @@ router.delete(
 router.post(
   '/:productId/datasheets',
   authorize('super_admin', 'sales_admin'),
-  uploadSingle('datasheet'),
   validate(productValidation.uploadDatasheetSchema),
   productController.uploadDatasheetController
 );

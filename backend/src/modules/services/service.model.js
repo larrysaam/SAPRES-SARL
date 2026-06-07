@@ -1,5 +1,5 @@
-import mongoose from 'mongoose';
-import slugify from '../../utils/slugify.js'; // Utility to generate URL-friendly slugs
+﻿import mongoose from 'mongoose';
+import { slugify } from '../../utils/slugify.js'; // Utility to generate URL-friendly slugs
 
 // Schema for image objects stored in Cloudinary
 const imageSchema = new mongoose.Schema({

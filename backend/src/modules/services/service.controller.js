@@ -1,5 +1,5 @@
 import serviceService from './service.service.js';
-import { createServiceSchema, updateServiceSchema, reorderServicesSchema } from './service.validation.js';
+
 import { ApiError } from '../../utils/ApiError.js'; // For consistent error handling
 import { ApiResponse } from '../../utils/ApiResponse.js'; // For consistent success responses
 
@@ -89,11 +89,13 @@ const deleteService = async (req, res, next) => {
 const uploadFeaturedImage = async (req, res, next) => {
   try {
     const { id } = req.params;
-    // req.file is populated by multer, req.uploadedImage by uploadSingle middleware
-    if (!req.file) {
-      throw new ApiError(400, 'No file uploaded');
+    const { secure_url, public_id } = req.body;
+
+    if (!secure_url || !public_id) {
+      throw new ApiError(400, 'Missing secure_url or public_id for featured image');
     }
-    const response = await serviceService.uploadFeaturedImage(id, req.file);
+
+    const response = await serviceService.uploadFeaturedImage(id, { secure_url, public_id });
     res.status(response.statusCode).json(response);
   } catch (error) {
     next(error);
@@ -107,11 +109,20 @@ const uploadFeaturedImage = async (req, res, next) => {
 const uploadGalleryImages = async (req, res, next) => {
   try {
     const { id } = req.params;
-    // req.files is populated by multer, req.uploadedImages by uploadMultiple middleware
-    if (!req.files || req.files.length === 0) {
-      throw new ApiError(400, 'No files uploaded');
+    const { images } = req.body; // Expect an array of { secure_url, public_id }
+
+    if (!images || !Array.isArray(images) || images.length === 0) {
+      throw new ApiError(400, 'No gallery images provided or invalid format');
     }
-    const response = await serviceService.uploadGalleryImages(id, req.files);
+
+    // Validate each image object in the array
+    for (const image of images) {
+      if (!image.secure_url || !image.public_id) {
+        throw new ApiError(400, 'Each gallery image must have secure_url and public_id');
+      }
+    }
+
+    const response = await serviceService.uploadGalleryImages(id, images);
     res.status(response.statusCode).json(response);
   } catch (error) {
     next(error);
@@ -158,9 +169,7 @@ const reorderServices = async (req, res, next) => {
 
 export default {
   validate,
-  createServiceSchema,
-  updateServiceSchema,
-  reorderServicesSchema,
+
   getAllServices,
   getSingleService,
   createService,

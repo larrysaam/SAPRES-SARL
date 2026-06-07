@@ -3,7 +3,7 @@ const router = express.Router();
 import serviceController from './service.controller.js'; // Import the service controller
 import authMiddleware from '../../middlewares/auth.middleware.js'; // Middleware for authentication
 import roleMiddleware from '../../middlewares/role.middleware.js'; // Middleware for role-based authorization
-import { uploadSingle, uploadMultiple } from '../../middlewares/upload.middleware.js'; // Middleware for file uploads
+
 import { createServiceSchema, updateServiceSchema, reorderServicesSchema } from './service.validation.js'; // Joi schemas for validation
 
 // Public routes - accessible without authentication
@@ -37,14 +37,12 @@ router.delete('/:id', serviceController.deleteService);
 // Route to upload a featured image for a service
 router.post(
   '/:id/featured-image',
-  uploadSingle('image', 'services/featured'), // Middleware to handle single image upload
   serviceController.uploadFeaturedImage
 );
 
 // Route to upload multiple gallery images for a service
 router.post(
   '/:id/gallery',
-  uploadMultiple('images', 'services/gallery'), // Middleware to handle multiple image uploads
   serviceController.uploadGalleryImages
 );
 

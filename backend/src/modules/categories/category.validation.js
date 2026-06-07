@@ -40,17 +40,20 @@ const getCategoriesSchema = Joi.object({
 });
 
 const uploadCategoryImageSchema = Joi.object({
-  image: Joi.any()
-    .meta({ swaggerType: 'file' })
-    .required()
-    .description('Category image file (jpg, jpeg, png, webp, max 5MB)'),
+  image: Joi.object({
+    secure_url: Joi.string().uri().required(),
+    public_id: Joi.string().required(),
+  }).required(),
 });
 
 const uploadCategoryIconSchema = Joi.object({
-  icon: Joi.any()
-    .meta({ swaggerType: 'file' })
-    .required()
-    .description('Category icon file (jpg, jpeg, png, webp, max 5MB)'),
+  fileBase64: Joi.string().base64().required().messages({
+    'string.base64': 'Icon file must be a valid base64 string',
+    'any.required': 'Icon file (base64) is required',
+  }),
+  originalName: Joi.string().required().messages({
+    'any.required': 'Original icon file name is required',
+  }),
 });
 
 export default {

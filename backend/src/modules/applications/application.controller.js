@@ -3,9 +3,13 @@ import applicationService from './application.service.js';
 import { ApiResponse } from '../../utils/ApiResponse.js';
 import { ApiError } from '../../utils/ApiError.js';
 
-const createApplication = async (req, res) => {
-  const application = await applicationService.createApplication(req.body, req.files);
-  res.status(httpStatus.CREATED).send(new ApiResponse(httpStatus.CREATED, application, 'Application submitted successfully'));
+const createApplication = async (req, res, next) => {
+  try {
+    const application = await applicationService.createApplication(req.body);
+    res.status(httpStatus.CREATED).send(new ApiResponse(httpStatus.CREATED, application, 'Application submitted successfully'));
+  } catch (error) {
+    next(error);
+  }
 };
 
 const getApplications = async (req, res) => {

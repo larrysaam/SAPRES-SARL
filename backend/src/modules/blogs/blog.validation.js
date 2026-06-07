@@ -1,5 +1,10 @@
 import Joi from 'joi';
 
+const imageSchema = Joi.object({
+  secure_url: Joi.string().uri().required(),
+  public_id: Joi.string().required(),
+});
+
 const createBlogSchema = Joi.object({
   title: Joi.string().required(),
   excerpt: Joi.string().required(),
@@ -19,6 +24,8 @@ const createBlogSchema = Joi.object({
   status: Joi.string().valid('draft', 'published', 'archived').default('draft'),
   seoTitle: Joi.string().required(),
   seoDescription: Joi.string().required(),
+  featuredImage: imageSchema.optional(),
+  gallery: Joi.array().items(imageSchema).optional(),
 });
 
 const updateBlogSchema = Joi.object({
@@ -40,9 +47,11 @@ const updateBlogSchema = Joi.object({
   status: Joi.string().valid('draft', 'published', 'archived').optional(),
   seoTitle: Joi.string().optional(),
   seoDescription: Joi.string().optional(),
+  featuredImage: imageSchema.optional(),
+  gallery: Joi.array().items(imageSchema).optional(),
 });
 
-export default {
+export {
   createBlogSchema,
   updateBlogSchema,
 };

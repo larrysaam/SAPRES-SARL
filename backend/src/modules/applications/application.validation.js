@@ -3,11 +3,7 @@ import { objectId } from '../../utils/customValidation.js';
 
 const fileSchema = Joi.object({
   publicId: Joi.string().required(),
-  secureUrl: Joi.string().required(),
-  originalName: Joi.string().required(),
-  format: Joi.string().required(),
-  bytes: Joi.number().required(),
-  resourceType: Joi.string().valid('image', 'raw').default('raw'),
+  secureUrl: Joi.string().uri().required(),
 });
 
 const createApplication = Joi.object().keys({
@@ -31,12 +27,11 @@ const createApplication = Joi.object().keys({
   coverLetter: Joi.string().min(10).max(5000).allow(''),
   skills: Joi.array().items(Joi.string().min(2).max(50)).optional(),
   languages: Joi.array().items(Joi.string().min(2).max(50)).optional(),
-  // Files are handled by multer, so their validation will be in the service/controller
-  // passportPhoto: fileSchema,
-  // cv: fileSchema,
-  // idCard: fileSchema,
-  // diploma: fileSchema,
-  // additionalDocuments: Joi.array().items(fileSchema),
+  passportPhoto: fileSchema.optional(),
+  cv: fileSchema.optional(),
+  idCard: fileSchema.optional(),
+  diploma: fileSchema.optional(),
+  additionalDocuments: Joi.array().items(fileSchema).optional(),
 });
 
 const getApplications = Joi.object().keys({

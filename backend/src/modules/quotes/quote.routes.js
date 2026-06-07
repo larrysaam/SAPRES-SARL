@@ -3,13 +3,12 @@ const router = express.Router();
 import quoteController from './quote.controller.js'; // Import the quote controller
 import authMiddleware from '../../middlewares/auth.middleware.js'; // Middleware for authentication
 import roleMiddleware from '../../middlewares/role.middleware.js'; // Middleware for role-based authorization
-import { uploadMultiple } from '../../middlewares/upload.middleware.js'; // Middleware for file uploads
+
 import { requestQuoteSchema, updateQuoteStatusSchema, addQuoteNoteSchema, scheduleSiteVisitSchema } from './quote.validation.js'; // Joi schemas for validation
 
 // Public route for requesting a new quote (supports multiple file attachments)
 router.post(
   '/',
-  uploadMultiple('attachments', 'quotes/attachments'), // Middleware to handle multiple file uploads
   quoteController.validate(requestQuoteSchema), // Validate request body
   quoteController.requestQuote
 );

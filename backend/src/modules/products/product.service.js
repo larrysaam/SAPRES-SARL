@@ -1,8 +1,8 @@
 import Product from './product.model.js';
 import { ApiError } from '../../utils/ApiError.js';
-import cloudinary from '../../config/cloudinary.js';
 import httpStatus from 'http-status';
 import Category from '../categories/category.model.js';
+
 
 /**
  * Create a product
@@ -153,14 +153,14 @@ const deleteProductById = async (productId) => {
 
   // Delete images from cloudinary
   for (const image of product.images) {
-    await cloudinary.uploader.destroy(image.publicId);
+    await deleteFileFromCloudinary(image.publicId, 'image');
   }
   // Delete datasheets from cloudinary
   for (const datasheet of product.datasheets) {
-    await cloudinary.uploader.destroy(datasheet.publicId, { resource_type: 'raw' });
+    await deleteFileFromCloudinary(datasheet.publicId, 'raw');
   }
 
-  await product.remove();
+  await product.deleteOne();
   return product;
 };
 
@@ -170,29 +170,13 @@ const deleteProductById = async (productId) => {
  * @param {Array<Object>} files
  * @returns {Promise<Product>}
  */
-const uploadProductImages = async (productId, files) => {
+const uploadProductImages = async (productId, images) => {
   const product = await getProductById(productId);
   if (!product) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Product not found');
   }
 
-  const uploadedImages = [];
-  for (const file of files) {
-    const result = await cloudinary.uploader.upload(file.path, {
-      folder: `sapres/products/${productId}`,
-      resource_type: 'image',
-    });
-    uploadedImages.push({
-      publicId: result.public_id,
-      secureUrl: result.secure_url,
-      originalName: file.originalname,
-      format: result.format,
-      bytes: result.bytes,
-      resourceType: result.resource_type,
-    });
-  }
-
-  product.images.push(...uploadedImages);
+  product.images.push(...images);
   await product.save();
   return product;
 };
@@ -214,7 +198,7 @@ const deleteProductImage = async (productId, publicId) => {
     throw new ApiError(httpStatus.NOT_FOUND, 'Image not found');
   }
 
-  await cloudinary.uploader.destroy(publicId);
+  await deleteFileFromCloudinary(publicId, 'image');
   product.images.splice(imageIndex, 1);
   await product.save();
   return product;
@@ -226,31 +210,19 @@ const deleteProductImage = async (productId, publicId) => {
  * @param {Object} file
  * @returns {Promise<Product>}
  */
-const uploadDatasheet = async (productId, file) => {
+const uploadDatasheet = async (productId, datasheet) => {
   const product = await getProductById(productId);
   if (!product) {
     throw new ApiError(httpStatus.NOT_FOUND, 'Product not found');
   }
 
   // Delete existing datasheets from cloudinary
-  for (const datasheet of product.datasheets) {
-    await cloudinary.uploader.destroy(datasheet.publicId, { resource_type: 'raw' });
+  for (const ds of product.datasheets) {
+    await deleteFileFromCloudinary(ds.publicId, 'raw');
   }
   product.datasheets = []; // Clear existing datasheets
 
-  const result = await cloudinary.uploader.upload(file.path, {
-    folder: `sapres/products/${productId}`,
-    resource_type: 'raw', // For PDF files
-  });
-
-  product.datasheets.push({
-    publicId: result.public_id,
-    secureUrl: result.secure_url,
-    originalName: file.originalname,
-    format: result.format,
-    bytes: result.bytes,
-    resourceType: result.resource_type,
-  });
+  product.datasheets.push(datasheet);
   await product.save();
   return product;
 };
