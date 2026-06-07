@@ -25,7 +25,7 @@ const updateOrderSchema = Joi.object({
   paymentStatus: Joi.string().valid('pending', 'paid', 'failed', 'refunded').optional(),
 });
 
-export default {
+export  {
   createOrderSchema,
   updateOrderSchema,
 };

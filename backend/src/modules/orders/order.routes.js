@@ -1,19 +1,19 @@
-import { Router } from 'express';
-import { validate } from '../../middlewares/validate.js';
+import e, { Router } from 'express';
+
 import OrderController from './order.controller.js';
-import orderValidation from './order.validation.js';
+import {createOrderSchema, updateOrderSchema } from './order.validation.js';
 
 const router = Router();
 
 router
   .route('/')
-  .post(validate(orderValidation.createOrderSchema), OrderController.createOrder)
+  .post(OrderController.validate(createOrderSchema), OrderController.createOrder)
   .get(OrderController.getAllOrders);
 
 router
   .route('/:id')
   .get(OrderController.getOrderById)
-  .patch(validate(orderValidation.updateOrderSchema), OrderController.updateOrder)
+  .patch(OrderController.validate(updateOrderSchema), OrderController.updateOrder)
   .delete(OrderController.deleteOrder);
 
 export default router;

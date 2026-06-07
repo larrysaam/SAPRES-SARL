@@ -33,7 +33,7 @@ router.use('/blogs', blogRoutes);
 router.use('/testimonials', testimonialRoutes);
 router.use('/contacts', contactRoutes);
 // router.use('/quotes', quoteRoutes);
-// router.use('/orders', orderRoutes);
+router.use('/orders', orderRoutes);
 // router.use('/payments', paymentRoutes);
 // router.use('/homepage', homepageRoutes);
 // router.use('/settings', settingRoutes);
