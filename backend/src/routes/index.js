@@ -14,11 +14,11 @@ import applicationRoutes from '../modules/applications/application.routes.js';
 import blogRoutes from '../modules/blogs/blog.routes.js';
 import testimonialRoutes from '../modules/testimonials/testimonial.routes.js';
 import contactRoutes from '../modules/contacts/contact.routes.js';
-// import quoteRoutes from '../modules/quotes/quote.routes.js';
+import quoteRoutes from '../modules/quotes/quote.routes.js';
 import orderRoutes from '../modules/orders/order.routes.js';
-// import paymentRoutes from '../modules/payments/payment.routes.js';
-// import homepageRoutes from '../modules/homepage/homepage.routes.js';
-// import settingRoutes from '../modules/settings/setting.routes.js';
+import paymentRoutes from '../modules/payments/payment.routes.js';
+import homepageRoutes from '../modules/homepage/homepage.routes.js';
+import settingRoutes from '../modules/settings/setting.routes.js';
 
 // mount feature routes
 router.use('/auth', authRoutes);
@@ -32,10 +32,10 @@ router.use('/applications', applicationRoutes);
 router.use('/blogs', blogRoutes);
 router.use('/testimonials', testimonialRoutes);
 router.use('/contacts', contactRoutes);
-// router.use('/quotes', quoteRoutes);
+router.use('/quotes', quoteRoutes);
 router.use('/orders', orderRoutes);
-// router.use('/payments', paymentRoutes);
-// router.use('/homepage', homepageRoutes);
-// router.use('/settings', settingRoutes);
+router.use('/payments', paymentRoutes);
+router.use('/homepage', homepageRoutes);
+router.use('/settings', settingRoutes);
 
 export default router;

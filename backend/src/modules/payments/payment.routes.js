@@ -1,10 +1,9 @@
-
-const express = require("express");
-const paymentController = require("./payment.controller");
+import express from 'express';
+import paymentController from './payment.controller.js';
 
 const router = express.Router();
 
-router.post("/initiate", paymentController.initiatePayment);
-router.post("/cinetpay-callback", paymentController.handleCinetpayCallback);
+router.post('/initiate', paymentController.initiatePayment);
+router.post('/cinetpay-callback', paymentController.handleCinetpayCallback);
 
-module.exports = router;
+export default router;
