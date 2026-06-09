@@ -2,7 +2,7 @@ import Quote from './quote.model.js';
 import { ApiError } from '../../utils/ApiError.js'; // For consistent error handling
 import { ApiResponse } from '../../utils/ApiResponse.js'; // For consistent success responses
 import cloudinary from '../../config/cloudinary.js'; // Cloudinary configuration for image uploads
-import generateSequentialNumber from '../../utils/generateSequentialNumber.js'; // Utility to generate sequential quote numbers
+import {generateSequentialNumber} from '../../utils/generateSequentialNumber.js'; // Utility to generate sequential quote numbers
 import { stringify } from 'csv-stringify';
 import ExcelJS from 'exceljs';
 

@@ -59,7 +59,7 @@ const scheduleSiteVisitSchema = Joi.object({
   assignedEngineer: Joi.string().required().min(3).max(100),
 });
 
-export default {
+export {
   requestQuoteSchema,
   updateQuoteStatusSchema,
   addQuoteNoteSchema,

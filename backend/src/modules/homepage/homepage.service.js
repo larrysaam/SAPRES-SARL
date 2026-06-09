@@ -28,58 +28,54 @@ const updateHomepage = async (updateBody) => {
 };
 
 /**
- * Upload hero image
- * @param {Object} file
+ * Upload hero image - accepts pre-uploaded Cloudinary asset data
+ * @param {Object} asset - { secureUrl, publicId, format, bytes }
  * @returns {Promise<Homepage>}
  */
-const uploadHeroImage = async (file) => {
+const uploadHeroImage = async (asset) => {
   const homepage = await getHomepage();
 
   if (homepage.hero.backgroundImage && homepage.hero.backgroundImage.publicId) {
-    await cloudinary.uploader.destroy(homepage.hero.backgroundImage.publicId);
+    try {
+      await cloudinary.uploader.destroy(homepage.hero.backgroundImage.publicId);
+    } catch (e) {
+      // Ignore delete errors - old image may not exist
+    }
   }
 
-  const result = await cloudinary.uploader.upload(file.path, {
-    folder: 'sapres/homepage',
-    public_id: 'hero-banner',
-    resource_type: 'image',
-  });
-
   homepage.hero.backgroundImage = {
-    publicId: result.public_id,
-    secureUrl: result.secure_url,
-    format: result.format,
-    bytes: result.bytes,
+    publicId: asset.publicId,
+    secureUrl: asset.secureUrl,
+    format: asset.format || 'jpg',
+    bytes: asset.bytes || 0,
   };
   await homepage.save();
   return homepage;
 };
 
 /**
- * Upload hero video
- * @param {Object} file
+ * Upload hero video - accepts pre-uploaded Cloudinary asset data
+ * @param {Object} asset - { secureUrl, publicId, format, bytes }
  * @returns {Promise<Homepage>}
  */
-const uploadHeroVideo = async (file) => {
+const uploadHeroVideo = async (asset) => {
   const homepage = await getHomepage();
 
   if (homepage.hero.backgroundVideo && homepage.hero.backgroundVideo.publicId) {
-    await cloudinary.uploader.destroy(homepage.hero.backgroundVideo.publicId, {
-      resource_type: 'video',
-    });
+    try {
+      await cloudinary.uploader.destroy(homepage.hero.backgroundVideo.publicId, {
+        resource_type: 'video',
+      });
+    } catch (e) {
+      // Ignore delete errors
+    }
   }
 
-  const result = await cloudinary.uploader.upload(file.path, {
-    folder: 'sapres/homepage',
-    public_id: 'hero-video',
-    resource_type: 'video',
-  });
-
   homepage.hero.backgroundVideo = {
-    publicId: result.public_id,
-    secureUrl: result.secure_url,
-    format: result.format,
-    bytes: result.bytes,
+    publicId: asset.publicId,
+    secureUrl: asset.secureUrl,
+    format: asset.format || 'mp4',
+    bytes: asset.bytes || 0,
   };
   await homepage.save();
   return homepage;

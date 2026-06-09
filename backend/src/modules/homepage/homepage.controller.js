@@ -27,10 +27,11 @@ const updateHomepageController = async (req, res, next) => {
 
 const uploadHeroImageController = async (req, res, next) => {
   try {
-    if (!req.file) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Hero image file is required');
+    const { secure_url, public_id, format, bytes } = req.body;
+    if (!secure_url || !public_id) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Image data { secure_url, public_id } is required');
     }
-    const homepage = await homepageService.uploadHeroImage(req.file);
+    const homepage = await homepageService.uploadHeroImage({ secureUrl: secure_url, publicId: public_id, format, bytes });
     res
       .status(httpStatus.OK)
       .send(
@@ -43,10 +44,11 @@ const uploadHeroImageController = async (req, res, next) => {
 
 const uploadHeroVideoController = async (req, res, next) => {
   try {
-    if (!req.file) {
-      throw new ApiError(httpStatus.BAD_REQUEST, 'Hero video file is required');
+    const { secure_url, public_id, format, bytes } = req.body;
+    if (!secure_url || !public_id) {
+      throw new ApiError(httpStatus.BAD_REQUEST, 'Video data { secure_url, public_id } is required');
     }
-    const homepage = await homepageService.uploadHeroVideo(req.file);
+    const homepage = await homepageService.uploadHeroVideo({ secureUrl: secure_url, publicId: public_id, format, bytes });
     res
       .status(httpStatus.OK)
       .send(
