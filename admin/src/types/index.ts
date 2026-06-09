@@ -2,7 +2,7 @@
 // SAPRES SARL Admin Dashboard - Shared Types
 // ============================================================
 
-export type UserRole = 'super-admin' | 'hr-admin' | 'sales-admin' | 'content-admin' | 'inventory-admin';
+export type UserRole = 'super_admin' | 'hr-admin' | 'sales-admin' | 'content-admin' | 'inventory-admin';
 
 export interface User {
   _id: string;

@@ -19,6 +19,7 @@ import orderRoutes from '../modules/orders/order.routes.js';
 import paymentRoutes from '../modules/payments/payment.routes.js';
 import homepageRoutes from '../modules/homepage/homepage.routes.js';
 import settingRoutes from '../modules/settings/setting.routes.js';
+import dashboardRoutes from '../modules/dashboard/dashboard.routes.js';
 
 // mount feature routes
 router.use('/auth', authRoutes);
@@ -37,5 +38,6 @@ router.use('/orders', orderRoutes);
 router.use('/payments', paymentRoutes);
 router.use('/homepage', homepageRoutes);
 router.use('/settings', settingRoutes);
+router.use('/dashboard', dashboardRoutes);
 
 export default router;

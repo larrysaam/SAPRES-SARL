@@ -11,7 +11,7 @@ const router = express.Router();
 router.route('/').get(homepageController.getHomepageController);
 
 // Authenticated routes
-router.use(auth);
+router.use(auth());
 
 router
   .route('/')

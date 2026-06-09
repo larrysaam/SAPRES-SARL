@@ -12,19 +12,19 @@ const router = express.Router();
 router.route('/').get(settingController.getSettingsController);
 
 // Authenticated routes
-router.use(auth); // Apply authentication middleware to all subsequent routes in this router
+router.use(auth()); // Apply authentication middleware to all subsequent routes in this router
 
 router
   .route('/')
   .put(
-    authorize(['super_admin']),
+    authorize('super_admin'),
     validate(settingValidation.updateSettingsSchema),
     settingController.updateSettingsController
   );
 
 router.post(
   '/logo',
-  authorize(['super_admin']),
+  authorize('super_admin'),
   uploadSingle('logo'),
   validate(settingValidation.uploadLogoSchema),
   settingController.uploadLogoController
@@ -32,7 +32,7 @@ router.post(
 
 router.post(
   '/favicon',
-  authorize(['super_admin']),
+  authorize('super_admin'),
   uploadSingle('favicon'),
   validate(settingValidation.uploadFaviconSchema),
   settingController.uploadFaviconController

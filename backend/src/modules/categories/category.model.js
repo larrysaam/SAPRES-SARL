@@ -22,13 +22,11 @@ const categorySchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: true,
       trim: true,
       maxlength: 5000,
     },
     shortDescription: {
       type: String,
-      required: true,
       trim: true,
       maxlength: 250,
     },

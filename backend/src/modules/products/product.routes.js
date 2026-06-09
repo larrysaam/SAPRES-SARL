@@ -14,7 +14,7 @@ router.get('/:slug', productController.getProductController);
 router.get('/:slug/related', productController.getRelatedProductsController);
 
 // Authenticated routes
-router.use(auth); // Apply authentication middleware to all subsequent routes in this router
+router.use(auth()); // Apply authentication middleware to all subsequent routes in this router
 
 router.post(
   '/',

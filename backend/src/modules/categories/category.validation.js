@@ -5,8 +5,8 @@ const categoryStatus = ['active', 'inactive'];
 
 const createCategorySchema = Joi.object({
   name: Joi.string().min(2).max(100).trim().required(),
-  description: Joi.string().max(5000).trim().required(),
-  shortDescription: Joi.string().max(250).trim().required(),
+  description: Joi.string().max(5000).trim().optional().default(''),
+  shortDescription: Joi.string().max(250).trim().optional().default(''),
   featured: Joi.boolean().optional(),
   status: Joi.string()
     .valid(...categoryStatus)
@@ -27,7 +27,7 @@ const updateCategorySchema = Joi.object({
   seoTitle: Joi.string().max(70).trim().optional(),
   seoDescription: Joi.string().max(160).trim().optional(),
   seoKeywords: Joi.array().items(Joi.string().trim()).max(20).optional(),
-}).min(1); // At least one field is required for update
+}).min(1);
 
 const getCategoriesSchema = Joi.object({
   featured: Joi.boolean().optional(),

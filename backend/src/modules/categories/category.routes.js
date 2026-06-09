@@ -14,11 +14,11 @@ router.get('/:slug', categoryController.getCategoryController);
 router.get('/:slug/products', categoryController.getCategoryProductsController);
 
 // Authenticated routes
-router.use(auth); // Apply authentication middleware to all subsequent routes in this router
+router.use(auth());
 
 router.post(
   '/',
-  authorize(['super_admin', 'sales_admin']),
+  authorize('super_admin', 'sales_admin'),
   validate(categoryValidation.createCategorySchema),
   categoryController.createCategoryController
 );
@@ -26,23 +26,21 @@ router.post(
 router
   .route('/:categoryId')
   .put(
-    authorize(['super_admin', 'sales_admin']),
+    authorize('super_admin', 'sales_admin'),
     validate(categoryValidation.updateCategorySchema),
     categoryController.updateCategoryController
   )
-  .delete(authorize(['super_admin']), categoryController.deleteCategoryController);
+  .delete(authorize('super_admin'), categoryController.deleteCategoryController);
 
 router.post(
   '/:categoryId/image',
-  authorize(['super_admin', 'sales_admin']),
-  validate(categoryValidation.uploadCategoryImageSchema),
+  authorize('super_admin', 'sales_admin'),
   categoryController.uploadCategoryImageController
 );
 
 router.post(
   '/:categoryId/icon',
-  authorize(['super_admin', 'sales_admin']),
-  validate(categoryValidation.uploadCategoryIconSchema),
+  authorize('super_admin', 'sales_admin'),
   categoryController.uploadCategoryIconController
 );
 
