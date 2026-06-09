@@ -46,6 +46,13 @@ const changePassword = Joi.object().keys({
   }),
 });
 
+const addAdmin = Joi.object().keys({
+  firstName: Joi.string().required(),
+  lastName: Joi.string().required(),
+  email: Joi.string().required().email(),
+  password: password,
+});
+
 export default {
   register,
   login,
@@ -54,4 +61,5 @@ export default {
   forgotPassword,
   resetPassword,
   changePassword,
+  addAdmin,
 };

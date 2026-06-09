@@ -11,6 +11,7 @@ import jwt from 'jsonwebtoken';
  * @returns {Promise<User>}
  */
 const loginUserWithEmailAndPassword = async (email, password) => {
+  console.log(`Attempting login for email: ${email}`);
   const user = await User.findOne({ email });
   if (!user || !(await user.isPasswordMatch(password))) {
     throw new ApiError(httpStatus.UNAUTHORIZED, 'Invalid email or password');
@@ -123,6 +124,32 @@ const generateResetPasswordToken = async (email) => {
   return resetPasswordToken;
 };
 
+/**
+ * Create a user
+ * @param {Object} userBody
+ * @returns {Promise<User>}
+ */
+const createUser = async (userBody) => {
+  if (await User.isEmailTaken(userBody.email)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
+  }
+  const user = await User.create(userBody);
+  return user;
+};
+
+/**
+ * Create an admin user
+ * @param {Object} userBody
+ * @returns {Promise<User>}
+ */
+const createAdminUser = async (userBody) => {
+  if (await User.isEmailTaken(userBody.email)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
+  }
+  const user = await User.create({ ...userBody, role: 'super_admin' });
+  return user;
+};
+
 export default {
   loginUserWithEmailAndPassword,
   refreshAuthTokens,
@@ -130,4 +157,6 @@ export default {
   changePassword,
   resetPassword,
   generateResetPasswordToken,
+  createUser,
+  createAdminUser,
 };
