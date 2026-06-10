@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PlusIcon,
@@ -6,12 +6,13 @@ import {
   TrashIcon,
   EyeIcon,
   XMarkIcon,
+  CloudArrowUpIcon,
 } from '@heroicons/react/24/outline';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import Modal from '../components/Modal';
 import Skeleton, { CardSkeleton } from '../components/Skeleton';
-import { toast } from '../components/Toast';
+import toast from '../components/Toast';
 import blogService from '../services/blogService';
 import type {
   Blog,
@@ -90,16 +91,47 @@ const ContentPage: React.FC = () => {
     status: 'draft' as 'draft' | 'published',
   });
 
+  // Cloudinary config
+  const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'your_cloud_name';
+  const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'sapres_unsigned';
+
+  /** Upload a single file to Cloudinary and return { secure_url, public_id } */
+  const uploadToCloudinary = async (file: File): Promise<{ secure_url: string; public_id: string }> => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+    formData.append('folder', 'sapres/services');
+
+    const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+    const res = await fetch(url, { method: 'POST', body: formData });
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      throw new Error(err?.error?.message || `Upload failed (${res.status})`);
+    }
+    return res.json().then((d) => ({ secure_url: d.secure_url, public_id: d.public_id }));
+  };
+
   // ---------- Service state ----------
   const [servicesModalOpen, setServicesModalOpen] = useState(false);
+  const [uploadingServiceImage, setUploadingServiceImage] = useState(false);
+  const serviceImageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingServiceGallery, setUploadingServiceGallery] = useState(false);
+  const serviceGalleryInputRef = useRef<HTMLInputElement>(null);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [serviceForm, setServiceForm] = useState({
     title: '',
+    shortDescription: '',
     description: '',
-    icon: '',
-    image: '',
-    order: 0,
-    isActive: true,
+    featuredImage: '',
+    gallery: [] as string[],
+    serviceFeatures: '',
+    serviceBenefits: '',
+    targetAudience: '',
+    seoTitle: '',
+    seoDescription: '',
+    displayOrder: 0,
+    status: 'draft' as 'draft' | 'published',
+    featured: false,
   });
 
   // ---------- Project state ----------
@@ -156,8 +188,10 @@ const ContentPage: React.FC = () => {
   const fetchServices = async (): Promise<{ data: Service[]; totalPages: number }> => {
     const { default: apiClient } = await import('../services/apiClient');
     const res = await apiClient.get('/services?limit=100');
-    const d = res.data?.data || res.data || [];
-    return { data: Array.isArray(d) ? d : d.data || [], totalPages: 1 };
+    const payload = res.data?.data || res.data || {};
+    // Backend returns { services: [...], page, limit, total, totalPages }
+    const services = Array.isArray(payload) ? payload : payload.services || payload.data || [];
+    return { data: Array.isArray(services) ? services : [], totalPages: payload.totalPages || 1 };
   };
 
   const fetchProjects = async (): Promise<{ data: Project[]; totalPages: number }> => {
@@ -341,9 +375,38 @@ const ContentPage: React.FC = () => {
 
   const handleServiceSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const payload: Record<string, any> = {
+      title: serviceForm.title,
+      shortDescription: serviceForm.shortDescription,
+      description: serviceForm.description,
+      displayOrder: serviceForm.displayOrder,
+      status: serviceForm.status,
+      featured: serviceForm.featured,
+      seoTitle: serviceForm.seoTitle || serviceForm.title,
+      seoDescription: serviceForm.seoDescription || serviceForm.shortDescription,
+    };
+    if (serviceForm.featuredImage) {
+      const uploadUrl = serviceForm.featuredImage;
+      // If URL starts with http, the image URL was pasted directly or uploaded to cloudinary already
+      payload.featuredImage = { secureUrl: uploadUrl, publicId: 'manual', format: 'jpg', bytes: 0 };
+    }
+    if (serviceForm.gallery.length > 0) {
+      payload.gallery = serviceForm.gallery.map((url) => ({
+        secureUrl: url, publicId: 'manual', format: 'jpg', bytes: 0,
+      }));
+    }
+    if (serviceForm.serviceFeatures) {
+      payload.serviceFeatures = serviceForm.serviceFeatures.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (serviceForm.serviceBenefits) {
+      payload.serviceBenefits = serviceForm.serviceBenefits.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (serviceForm.targetAudience) {
+      payload.targetAudience = serviceForm.targetAudience.split(',').map((s) => s.trim()).filter(Boolean);
+    }
     saveServiceMutation.mutate({
       id: editingService?._id,
-      data: serviceForm,
+      data: payload,
     });
     setServicesModalOpen(false);
     resetServiceForm();
@@ -351,19 +414,32 @@ const ContentPage: React.FC = () => {
 
   const resetServiceForm = () => {
     setEditingService(null);
-    setServiceForm({ title: '', description: '', icon: '', image: '', order: 0, isActive: true });
+    setServiceForm({
+      title: '', shortDescription: '', description: '',
+      featuredImage: '', gallery: [], serviceFeatures: '',
+      serviceBenefits: '', targetAudience: '', seoTitle: '',
+      seoDescription: '', displayOrder: 0, status: 'draft', featured: false,
+    });
   };
 
   const openServiceModal = (svc?: Service) => {
     if (svc) {
+      const s = svc as any;
       setEditingService(svc);
       setServiceForm({
-        title: svc.title,
-        description: svc.description,
-        icon: svc.icon,
-        image: svc.image?.secureUrl || '',
-        order: svc.order,
-        isActive: svc.isActive,
+        title: s.title || '',
+        shortDescription: s.shortDescription || '',
+        description: s.description || '',
+        featuredImage: s.featuredImage?.secureUrl || '',
+        gallery: s.gallery?.map((g: any) => g.secureUrl) || [],
+        serviceFeatures: s.serviceFeatures?.join(', ') || '',
+        serviceBenefits: s.serviceBenefits?.join(', ') || '',
+        targetAudience: s.targetAudience?.join(', ') || '',
+        seoTitle: s.seoTitle || '',
+        seoDescription: s.seoDescription || '',
+        displayOrder: s.displayOrder || 0,
+        status: s.status || 'draft',
+        featured: s.featured || false,
       });
     } else {
       resetServiceForm();
@@ -591,7 +667,12 @@ const ContentPage: React.FC = () => {
   // ---------- Column definitions ----------
   const blogColumns: Column<Blog>[] = [
     { key: 'title', header: 'Title', render: (b) => <span className="font-medium">{b.title}</span> },
-    { key: 'author', header: 'Author' },
+    { key: 'author', header: 'Author', render: (b) => {
+      const author = b.author;
+      if (!author) return '-';
+      if (typeof author === 'string') return author;
+      return `${author.firstName || ''} ${author.lastName || ''}`.trim() || '-';
+    }},
     { key: 'isPublished', header: 'Status', render: (b) => (
       <span className={`px-2 py-1 rounded-full text-xs font-medium ${b.isPublished ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300'}`}>
         {b.isPublished ? 'Published' : 'Draft'}
@@ -601,14 +682,21 @@ const ContentPage: React.FC = () => {
   ];
 
   const svcColumns: Column<Service>[] = [
-    { key: 'title', header: 'Title', render: (s) => <span className="font-medium">{s.title}</span> },
-    { key: 'icon', header: 'Icon' },
-    { key: 'order', header: 'Order' },
-    { key: 'isActive', header: 'Status', render: (s) => (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${s.isActive ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'}`}>
-        {s.isActive ? 'Active' : 'Inactive'}
-      </span>
-    )},
+    { key: 'title', header: 'Title', render: (s) => <span className="font-medium">{(s as any).title}</span> },
+    { key: 'featuredImage', header: 'Image', render: (s) => {
+      const img = (s as any).featuredImage?.secureUrl;
+      return img ? <img src={img} alt="" className="h-10 w-10 rounded-lg object-cover border border-gray-200 dark:border-gray-600" /> : <span className="text-gray-400">—</span>;
+    }},
+    { key: 'displayOrder', header: 'Order', render: (s) => <span>{(s as any).displayOrder ?? 0}</span> },
+    { key: 'status', header: 'Status', render: (s) => {
+      const status = (s as any).status || 'draft';
+      const colors: Record<string, string> = {
+        draft: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+        published: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+        archived: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+      };
+      return <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[status] || colors.draft}`}>{status}</span>;
+    }},
   ];
 
   const projColumns: Column<Project>[] = [
@@ -988,35 +1076,146 @@ const ContentPage: React.FC = () => {
     onCreateLabel: 'New Service',
     onOpenCreate: () => openServiceModal(),
     modal: (
-      <Modal isOpen={servicesModalOpen} onClose={() => { setServicesModalOpen(false); resetServiceForm(); }} title={editingService ? 'Edit Service' : 'New Service'} size="md">
-        <form onSubmit={handleServiceSubmit} className="space-y-4">
-          <div>
-            <label className={labelClass}>Title</label>
-            <input className={inputClass} value={serviceForm.title} onChange={(e) => setServiceForm({ ...serviceForm, title: e.target.value })} required />
+      <Modal isOpen={servicesModalOpen} onClose={() => { setServicesModalOpen(false); resetServiceForm(); }} title={editingService ? 'Edit Service' : 'New Service'} size="xl">
+        <form onSubmit={handleServiceSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+          {/* Core fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Title *</label>
+              <input className={inputClass} value={serviceForm.title} onChange={(e) => setServiceForm({ ...serviceForm, title: e.target.value })} required />
+            </div>
+            <div>
+              <label className={labelClass}>SEO Title</label>
+              <input className={inputClass} value={serviceForm.seoTitle} onChange={(e) => setServiceForm({ ...serviceForm, seoTitle: e.target.value })} />
+            </div>
           </div>
           <div>
-            <label className={labelClass}>Description</label>
-            <textarea className={inputClass} rows={3} value={serviceForm.description} onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })} required />
+            <label className={labelClass}>Short Description *</label>
+            <textarea className={inputClass} rows={2} value={serviceForm.shortDescription} onChange={(e) => setServiceForm({ ...serviceForm, shortDescription: e.target.value })} required placeholder="Brief overview of the service (10-500 chars)" />
           </div>
           <div>
-            <label className={labelClass}>Icon (CSS class or URL)</label>
-            <input className={inputClass} value={serviceForm.icon} onChange={(e) => setServiceForm({ ...serviceForm, icon: e.target.value })} />
+            <label className={labelClass}>Full Description *</label>
+            <textarea className={inputClass} rows={4} value={serviceForm.description} onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })} required placeholder="Detailed service description (min 20 chars)" />
           </div>
           <div>
-            <label className={labelClass}>Image URL</label>
-            <input className={inputClass} value={serviceForm.image} onChange={(e) => setServiceForm({ ...serviceForm, image: e.target.value })} placeholder="https://..." />
+            <label className={labelClass}>SEO Description</label>
+            <textarea className={inputClass} rows={2} value={serviceForm.seoDescription} onChange={(e) => setServiceForm({ ...serviceForm, seoDescription: e.target.value })} placeholder="SEO meta description" />
           </div>
+
+          {/* Featured Image */}
+          <div className="brutal-card p-4">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-3">Featured Image</h4>
+            {serviceForm.featuredImage && (
+              <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 mb-3 group">
+                <img src={serviceForm.featuredImage} alt="Featured" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => setServiceForm({ ...serviceForm, featuredImage: '' })} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <XMarkIcon className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
+              <CloudArrowUpIcon className="h-6 w-6 mx-auto text-gray-400 mb-1" />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Upload featured image to Cloudinary</p>
+              <input ref={serviceImageInputRef} type="file" accept="image/*" onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploadingServiceImage(true);
+                try {
+                  const result = await uploadToCloudinary(file);
+                  setServiceForm({ ...serviceForm, featuredImage: result.secure_url });
+                  toast.success('Featured image uploaded');
+                } catch (err: any) {
+                  toast.error(err.message || 'Upload failed');
+                } finally {
+                  setUploadingServiceImage(false);
+                  if (serviceImageInputRef.current) serviceImageInputRef.current.value = '';
+                }
+              }} disabled={uploadingServiceImage} className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              {uploadingServiceImage && <p className="text-xs text-emerald-600 mt-1">Uploading...</p>}
+            </div>
+          </div>
+
+          {/* Gallery */}
+          <div className="brutal-card p-4">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-3">Gallery Images</h4>
+            {serviceForm.gallery.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {serviceForm.gallery.map((url, i) => (
+                  <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 group">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setServiceForm({ ...serviceForm, gallery: serviceForm.gallery.filter((_, j) => j !== i) })} className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <XMarkIcon className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
+              <CloudArrowUpIcon className="h-6 w-6 mx-auto text-gray-400 mb-1" />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Upload gallery images (max 10)</p>
+              <input ref={serviceGalleryInputRef} type="file" accept="image/*" multiple onChange={async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                setUploadingServiceGallery(true);
+                try {
+                  const results = await Promise.all(Array.from(files).map((f) => uploadToCloudinary(f)));
+                  const urls = results.map((r) => r.secure_url);
+                  setServiceForm({ ...serviceForm, gallery: [...serviceForm.gallery, ...urls] });
+                  toast.success(`${urls.length} image(s) uploaded`);
+                } catch (err: any) {
+                  toast.error(err.message || 'Upload failed');
+                } finally {
+                  setUploadingServiceGallery(false);
+                  if (serviceGalleryInputRef.current) serviceGalleryInputRef.current.value = '';
+                }
+              }} disabled={uploadingServiceGallery} className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              {uploadingServiceGallery && <p className="text-xs text-emerald-600 mt-1">Uploading...</p>}
+            </div>
+          </div>
+
+          {/* Features & Benefits */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Features (comma separated)</label>
+              <textarea className={inputClass} rows={3} value={serviceForm.serviceFeatures} onChange={(e) => setServiceForm({ ...serviceForm, serviceFeatures: e.target.value })} placeholder="24/7 support, Custom setup, Free consultation" />
+            </div>
+            <div>
+              <label className={labelClass}>Benefits (comma separated)</label>
+              <textarea className={inputClass} rows={3} value={serviceForm.serviceBenefits} onChange={(e) => setServiceForm({ ...serviceForm, serviceBenefits: e.target.value })} placeholder="Save time, Reduce costs, Improve efficiency" />
+            </div>
+          </div>
+
+          {/* Target Audience */}
           <div>
-            <label className={labelClass}>Order</label>
-            <input type="number" className={inputClass} value={serviceForm.order} onChange={(e) => setServiceForm({ ...serviceForm, order: parseInt(e.target.value) || 0 })} />
+            <label className={labelClass}>Target Audience (comma separated)</label>
+            <input className={inputClass} value={serviceForm.targetAudience} onChange={(e) => setServiceForm({ ...serviceForm, targetAudience: e.target.value })} placeholder="SMEs, Large enterprises, Government" />
           </div>
-          <div className="flex items-center gap-2">
-            <input type="checkbox" checked={serviceForm.isActive} onChange={(e) => setServiceForm({ ...serviceForm, isActive: e.target.checked })} className="rounded border-gray-300 dark:border-gray-600" />
-            <label className="text-sm text-gray-700 dark:text-gray-300">Active</label>
+
+          {/* Settings row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <label className={labelClass}>Display Order</label>
+              <input type="number" className={inputClass} value={serviceForm.displayOrder} onChange={(e) => setServiceForm({ ...serviceForm, displayOrder: parseInt(e.target.value) || 0 })} />
+            </div>
+            <div>
+              <label className={labelClass}>Status</label>
+              <select className={inputClass} value={serviceForm.status} onChange={(e) => setServiceForm({ ...serviceForm, status: e.target.value as 'draft' | 'published' })}>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+            <div className="flex items-center gap-2 pt-6">
+              <input type="checkbox" checked={serviceForm.featured} onChange={(e) => setServiceForm({ ...serviceForm, featured: e.target.checked })} className="rounded border-gray-300 dark:border-gray-600 w-4 h-4" />
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Featured</label>
+            </div>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
             <button type="button" onClick={() => { setServicesModalOpen(false); resetServiceForm(); }} className={btnSecondary}>Cancel</button>
-            <button type="submit" className={btnPrimary}>{editingService ? 'Update' : 'Create'}</button>
+            <button type="submit" className={btnPrimary} disabled={saveServiceMutation.isPending}>
+              {editingService ? 'Update' : 'Create'}
+            </button>
           </div>
         </form>
       </Modal>

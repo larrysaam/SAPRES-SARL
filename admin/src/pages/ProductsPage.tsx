@@ -12,7 +12,7 @@ import {
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import Skeleton from '../components/Skeleton';
-import { toast } from '../components/Toast';
+import toast from '../components/Toast';
 import productService from '../services/productService';
 import categoryService from '../services/categoryService';
 import type { Product, Category, Asset } from '../types';

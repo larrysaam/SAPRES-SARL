@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { CardSkeleton } from '../components/Skeleton';
-import { toast } from '../components/Toast';
+import toast from '../components/Toast';
 import dashboardService from '../services/dashboardService';
 import productService from '../services/productService';
 import orderService from '../services/orderService';

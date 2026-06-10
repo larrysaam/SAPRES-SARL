@@ -1,56 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
 
-  @media (max-width: 1024px) {
-    font-size: 16px;
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 3px;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    background: #4b5563;
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
+@layer components {
+  /* Card with brutalist border */
+  .brutal-card {
+    @apply bg-white dark:bg-gray-800 rounded-xl border-2 border-gray-900 dark:border-gray-200 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,0.3)] transition-all duration-200;
   }
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+  .brutal-card:hover {
+    @apply shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,0.3)] -translate-x-0.5 -translate-y-0.5;
+  }
+
+  /* Brutalist button */
+  .brutal-btn {
+    @apply px-5 py-2.5 font-bold text-sm rounded-lg border-2 border-gray-900 dark:border-gray-200 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,0.3)] transition-all duration-150 active:shadow-none active:translate-x-0.5 active:translate-y-0.5;
+  }
+
+  .brutal-btn-primary {
+    @apply brutal-btn bg-emerald-600 text-white hover:bg-emerald-700;
+  }
+
+  .brutal-btn-secondary {
+    @apply brutal-btn bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600;
+  }
+
+  .brutal-btn-danger {
+    @apply brutal-btn bg-red-600 text-white hover:bg-red-700;
+  }
+
+  .brutal-btn-success {
+    @apply brutal-btn bg-emerald-600 text-white hover:bg-emerald-700;
+  }
+
+  /* Brutalist input */
+  .brutal-input {
+    @apply w-full px-4 py-2.5 rounded-lg border-2 border-gray-900 dark:border-gray-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)] focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:shadow-[3px_3px_0px_0px_rgba(16,185,129,1)] dark:focus:shadow-[3px_3px_0px_0px_rgba(52,211,153,0.5)] transition-all duration-150;
+  }
+
+  .brutal-select {
+    @apply brutal-input appearance-none cursor-pointer;
+  }
+
+  /* Badge / Tag */
+  .brutal-badge {
+    @apply inline-flex items-center px-2.5 py-1 rounded-md text-xs font-bold border-2 border-gray-900 dark:border-gray-200 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] dark:shadow-[1px_1px_0px_0px_rgba(255,255,255,0.2)];
+  }
+
+  /* Section title */
+  .brutal-title {
+    @apply text-2xl font-black text-gray-900 dark:text-white tracking-tight;
+  }
+
+  .brutal-subtitle {
+    @apply text-sm font-medium text-gray-500 dark:text-gray-400;
   }
 }
 
+/* Animations */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-2deg); }
+  75% { transform: rotate(2deg); }
+}
+
+.animate-wiggle {
+  animation: wiggle 0.3s ease-in-out;
+}
+
+@keyframes pop-in {
+  0% { transform: scale(0.9); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-pop-in {
+  animation: pop-in 0.2s ease-out;
+}

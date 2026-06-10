@@ -4,7 +4,7 @@ import { CheckCircleIcon, XCircleIcon, EyeIcon } from '@heroicons/react/24/outli
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import Modal from '../components/Modal';
-import { toast } from '../components/Toast';
+import toast from '../components/Toast';
 import paymentService from '../services/paymentService';
 import type { Payment } from '../types';
 

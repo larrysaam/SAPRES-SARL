@@ -4,7 +4,7 @@ import { PlusIcon, PencilIcon, TrashIcon, EyeIcon } from '@heroicons/react/24/ou
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import Modal from '../components/Modal';
-import { toast } from '../components/Toast';
+import toast from '../components/Toast';
 import applicationService from '../services/applicationService';
 import jobService from '../services/jobService';
 import type { Application, Job } from '../types';

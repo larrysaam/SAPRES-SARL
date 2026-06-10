@@ -4,7 +4,7 @@ import { PlusIcon, PencilIcon } from '@heroicons/react/24/outline';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import Modal from '../components/Modal';
-import { toast } from '../components/Toast';
+import toast from '../components/Toast';
 import type { Notification, NotificationTemplate } from '../types';
 
 // Mock data - in production, connect to real API endpoints

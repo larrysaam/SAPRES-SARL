@@ -5,7 +5,7 @@ import { deleteFileFromCloudinary } from '../../utils/cloudinary.util.js';
 class BlogService {
   static async create(payload, userId) {
     const existingBlog = await Blog.findOne({ title: payload.title });
-    if (existingBlog) throw new ApiError('Blog title already exists', 400);
+    if (existingBlog) throw new ApiError(400, 'Blog title already exists');
     
     payload.author = userId;
     const blog = await Blog.create(payload);
@@ -51,7 +51,7 @@ class BlogService {
     const blog = await Blog.findOne({ slug, status: 'published', deletedAt: { $exists: false } })
       .populate('author', 'firstName lastName')
       .lean();
-    if (!blog) throw new ApiError('Blog post not found', 404);
+    if (!blog) throw new ApiError(404, 'Blog post not found');
     return blog;
   }
 
@@ -59,20 +59,20 @@ class BlogService {
     const blog = await Blog.findById(id)
       .populate('author', 'firstName lastName')
       .lean();
-    if (!blog) throw new ApiError('Blog post not found', 404);
+    if (!blog) throw new ApiError(404, 'Blog post not found');
     return blog;
   }
 
   static async update(id, payload) {
     const blog = await Blog.findByIdAndUpdate(id, payload, { new: true })
       .populate('author', 'firstName lastName');
-    if (!blog) throw new ApiError('Blog post not found', 404);
+    if (!blog) throw new ApiError(404, 'Blog post not found');
     return blog;
   }
 
   static async delete(id) {
     const blog = await Blog.findById(id);
-    if (!blog) throw new ApiError('Blog post not found', 404);
+    if (!blog) throw new ApiError(404, 'Blog post not found');
 
     // Delete featured image from Cloudinary
     if (blog.featuredImage && blog.featuredImage.publicId) {
@@ -98,13 +98,13 @@ class BlogService {
       { featuredImage: imageData },
       { new: true }
     );
-    if (!blog) throw new ApiError('Blog post not found', 404);
+    if (!blog) throw new ApiError(404, 'Blog post not found');
     return blog;
   }
 
   static async uploadGallery(id, images) {
     const blog = await Blog.findById(id);
-    if (!blog) throw new ApiError('Blog post not found', 404);
+    if (!blog) throw new ApiError(404, 'Blog post not found');
     
     if (!blog.gallery) blog.gallery = [];
     blog.gallery.push(...images);
@@ -118,7 +118,7 @@ class BlogService {
       { $pull: { gallery: { publicId: imagePublicId } } },
       { new: true }
     );
-    if (!blog) throw new ApiError('Blog post not found', 404);
+    if (!blog) throw new ApiError(404, 'Blog post not found');
     return blog;
   }
 
@@ -133,7 +133,7 @@ class BlogService {
 
   static async getRelated(slug, limit = 5) {
     const currentBlog = await Blog.findOne({ slug });
-    if (!currentBlog) throw new ApiError('Blog post not found', 404);
+    if (!currentBlog) throw new ApiError(404, 'Blog post not found');
 
     const relatedBlogs = await Blog.find({
       $and: [
@@ -161,7 +161,7 @@ class BlogService {
       { $inc: { views: 1 } },
       { new: true }
     );
-    if (!blog) throw new ApiError('Blog post not found', 404);
+    if (!blog) throw new ApiError(404, 'Blog post not found');
     return blog;
   }
 

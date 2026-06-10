@@ -4,7 +4,7 @@ import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import Modal from '../components/Modal';
-import { toast } from '../components/Toast';
+import toast from '../components/Toast';
 import userService from '../services/userService';
 import authService from '../services/authService';
 import type { User, UserRole } from '../types';

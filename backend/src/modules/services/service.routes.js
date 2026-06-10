@@ -1,58 +1,65 @@
 import express from 'express';
 const router = express.Router();
-import serviceController from './service.controller.js'; // Import the service controller
-import authMiddleware from '../../middlewares/auth.middleware.js'; // Middleware for authentication
-import roleMiddleware from '../../middlewares/role.middleware.js'; // Middleware for role-based authorization
-
-import { createServiceSchema, updateServiceSchema, reorderServicesSchema } from './service.validation.js'; // Joi schemas for validation
+import serviceController from './service.controller.js';
+import auth from '../../middlewares/auth.middleware.js';
+import authorize from '../../middlewares/role.middleware.js';
+import { createServiceSchema, updateServiceSchema, reorderServicesSchema } from './service.validation.js';
 
 // Public routes - accessible without authentication
-router.get('/', serviceController.getAllServices); // Get all services with optional filters
-router.get('/featured', serviceController.getFeaturedServices); // Get only featured services
-router.get('/:slug', serviceController.getSingleService); // Get a single service by its slug
+router.get('/', serviceController.getAllServices);
+router.get('/featured', serviceController.getFeaturedServices);
+router.get('/:slug', serviceController.getSingleService);
 
-// Authenticated and authorized routes (Admin/Editor roles)
-// All routes below this middleware will require authentication
-router.use(authMiddleware);
-// All routes below this middleware will require the user to have 'admin' or 'editor' role
-router.use(roleMiddleware(['admin', 'editor']));
-
-// Route to create a new service
+// Authenticated routes for CRUD operations
 router.post(
   '/',
-  serviceController.validate(createServiceSchema), // Validate request body
+  auth(),
+  authorize('super_admin', 'content_admin', 'sales_admin'),
+  serviceController.validate(createServiceSchema),
   serviceController.createService
 );
 
-// Route to update an existing service by ID
 router.put(
   '/:id',
-  serviceController.validate(updateServiceSchema), // Validate request body
+  auth(),
+  authorize('super_admin', 'content_admin', 'sales_admin'),
+  serviceController.validate(updateServiceSchema),
   serviceController.updateService
 );
 
-// Route to soft delete a service by ID
-router.delete('/:id', serviceController.deleteService);
+router.delete(
+  '/:id',
+  auth(),
+  authorize('super_admin', 'content_admin', 'sales_admin'),
+  serviceController.deleteService
+);
 
-// Route to upload a featured image for a service
 router.post(
   '/:id/featured-image',
+  auth(),
+  authorize('super_admin', 'content_admin', 'sales_admin'),
   serviceController.uploadFeaturedImage
 );
 
-// Route to upload multiple gallery images for a service
 router.post(
   '/:id/gallery',
+  auth(),
+  authorize('super_admin', 'content_admin', 'sales_admin'),
   serviceController.uploadGalleryImages
 );
 
-// Route to delete a gallery image from a service
-router.delete('/:id/gallery/:imageId', serviceController.deleteGalleryImage);
+router.delete(
+  '/:id/gallery/:imageId',
+  auth(),
+  authorize('super_admin', 'content_admin', 'sales_admin'),
+  serviceController.deleteGalleryImage
+);
 
-// Route to reorder services
 router.patch(
   '/reorder',
-  serviceController.validate(reorderServicesSchema), // Validate request body for reordering
+  auth(),
+  authorize('super_admin', 'content_admin', 'sales_admin'),
+  serviceController.validate(reorderServicesSchema),
   serviceController.reorderServices
 );
 

@@ -7,7 +7,7 @@ import {
 } from '@heroicons/react/24/outline';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
-import { toast } from '../components/Toast';
+import toast from '../components/Toast';
 import orderService from '../services/orderService';
 import type { Order } from '../types';
 

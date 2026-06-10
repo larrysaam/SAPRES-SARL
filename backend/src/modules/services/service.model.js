@@ -102,9 +102,16 @@ const serviceSchema = new mongoose.Schema(
 );
 
 // Middleware to generate slug from title before saving
-serviceSchema.pre('save', function (next) {
+serviceSchema.pre('save', async function (next) {
   if (this.isModified('title')) {
-    this.slug = slugify(this.title); // Generate slug from title
+    let slug = slugify(this.title);
+    if (!slug) slug = 'service-' + Date.now();
+    // Ensure slug uniqueness
+    const existing = await Service.findOne({ slug, _id: { $ne: this._id } });
+    if (existing) {
+      slug = slug + '-' + Date.now();
+    }
+    this.slug = slug;
   }
   next();
 });
