@@ -21,7 +21,7 @@ const RecruitmentPage: React.FC = () => {
   const [isAppDetailOpen, setIsAppDetailOpen] = useState(false);
   const [isJobModalOpen, setIsJobModalOpen] = useState(false);
   const [editingJob, setEditingJob] = useState<Job | null>(null);
-  const [jobForm, setJobForm] = useState({ title: '', department: '', location: '', type: 'full-time' as Job['type'], description: '', requirements: '', responsibilities: '', salary: '', isActive: true });
+  const [jobForm, setJobForm] = useState({ title: '', department: '', location: '', employmentType: 'full-time' as Job['employmentType'], description: '', requirements: '', responsibilities: '', salaryRange: '', applicationDeadline: '', status: 'draft' as Job['status'] });
 
   const { data: appsData, isLoading: appsLoading } = useQuery({
     queryKey: ['applications', appPage, statusFilter],
@@ -69,7 +69,7 @@ const RecruitmentPage: React.FC = () => {
     onError: () => toast.error('Failed to delete job'),
   });
 
-  const resetJobForm = () => { setEditingJob(null); setJobForm({ title: '', department: '', location: '', type: 'full-time', description: '', requirements: '', responsibilities: '', salary: '', isActive: true }); };
+  const resetJobForm = () => { setEditingJob(null); setJobForm({ title: '', department: '', location: '', employmentType: 'full-time', description: '', requirements: '', responsibilities: '', salaryRange: '', applicationDeadline: '', status: 'draft' }); };
 
   const statusColors: Record<string, string> = {
     pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
@@ -95,8 +95,8 @@ const RecruitmentPage: React.FC = () => {
     { key: 'title', header: 'Title', render: (j) => <span className="font-medium">{j.title}</span> },
     { key: 'department', header: 'Department' },
     { key: 'location', header: 'Location' },
-    { key: 'type', header: 'Type', render: (j) => <span className="capitalize">{j.type}</span> },
-    { key: 'isActive', header: 'Status', render: (j) => <span className={`px-2 py-1 text-xs font-medium rounded-full ${j.isActive ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>{j.isActive ? 'Active' : 'Inactive'}</span> },
+    { key: 'employmentType', header: 'Type', render: (j) => <span className="capitalize">{j.employmentType?.replace('-', ' ')}</span> },
+    { key: 'status', header: 'Status', render: (j) => <span className={`px-2 py-1 text-xs font-medium rounded-full ${j.status === 'draft' ? 'bg-gray-100 text-gray-800 dark:bg-gray-700' : j.status === 'open' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>{j.status}</span> },
   ];
 
   const handleNotify = (app: Application) => {
@@ -162,7 +162,7 @@ const RecruitmentPage: React.FC = () => {
             onPageChange={setJobPage}
             actions={(job: Job) => (
               <div className="flex items-center gap-1">
-                <button onClick={() => { setEditingJob(job); setJobForm({ title: job.title, department: job.department, location: job.location, type: job.type, description: job.description, requirements: job.requirements?.join(', ') || '', responsibilities: job.responsibilities?.join(', ') || '', salary: job.salary || '', isActive: job.isActive }); setIsJobModalOpen(true); }} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400"><PencilIcon className="h-4 w-4" /></button>
+                <button onClick={() => { setEditingJob(job); setJobForm({ title: job.title, department: job.department, location: job.location, employmentType: job.employmentType, description: job.description, requirements: job.requirements?.join(', ') || '', responsibilities: job.responsibilities?.join(', ') || '', salaryRange: job.salaryRange || '', applicationDeadline: job.applicationDeadline ? job.applicationDeadline.split('T')[0] : '', status: job.status }); setIsJobModalOpen(true); }} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400"><PencilIcon className="h-4 w-4" /></button>
                 <button onClick={() => deleteJobMutation.mutate(job._id)} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400"><TrashIcon className="h-4 w-4" /></button>
               </div>
             )}
@@ -204,17 +204,16 @@ const RecruitmentPage: React.FC = () => {
         <form onSubmit={(e) => { e.preventDefault(); const payload = { ...jobForm, requirements: jobForm.requirements.split(',').map((r: string) => r.trim()).filter(Boolean), responsibilities: jobForm.responsibilities.split(',').map((r: string) => r.trim()).filter(Boolean) }; if (editingJob) updateJobMutation.mutate({ id: editingJob._id, data: payload }); else createJobMutation.mutate(payload); }} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Title</label><input className={inputClass} value={jobForm.title} onChange={(e) => setJobForm({ ...jobForm, title: e.target.value })} required /></div>
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department</label><input className={inputClass} value={jobForm.department} onChange={(e) => setJobForm({ ...jobForm, department: e.target.value })} /></div>
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label><input className={inputClass} value={jobForm.location} onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })} /></div>
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Type</label><select className={inputClass} value={jobForm.type} onChange={(e) => setJobForm({ ...jobForm, type: e.target.value as Job['type'] })}><option value="full-time">Full Time</option><option value="part-time">Part Time</option><option value="contract">Contract</option><option value="internship">Internship</option></select></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Department</label><input className={inputClass} value={jobForm.department} onChange={(e) => setJobForm({ ...jobForm, department: e.target.value })} required /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Location</label><input className={inputClass} value={jobForm.location} onChange={(e) => setJobForm({ ...jobForm, location: e.target.value })} required /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Employment Type</label><select className={inputClass} value={jobForm.employmentType} onChange={(e) => setJobForm({ ...jobForm, employmentType: e.target.value as Job['employmentType'] })} required><option value="full-time">Full Time</option><option value="part-time">Part Time</option><option value="contract">Contract</option><option value="internship">Internship</option><option value="temporary">Temporary</option></select></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Application Deadline</label><input type="date" className={inputClass} value={jobForm.applicationDeadline} onChange={(e) => setJobForm({ ...jobForm, applicationDeadline: e.target.value })} required /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Salary Range</label><input className={inputClass} value={jobForm.salaryRange} onChange={(e) => setJobForm({ ...jobForm, salaryRange: e.target.value })} /></div>
+            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label><select className={inputClass} value={jobForm.status} onChange={(e) => setJobForm({ ...jobForm, status: e.target.value as Job['status'] })}><option value="draft">Draft</option><option value="open">Open</option><option value="closed">Closed</option><option value="archived">Archived</option></select></div>
           </div>
-          <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label><textarea className={inputClass} rows={3} value={jobForm.description} onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })} /></div>
+          <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label><textarea className={inputClass} rows={3} value={jobForm.description} onChange={(e) => setJobForm({ ...jobForm, description: e.target.value })} required /></div>
           <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Requirements (comma separated)</label><textarea className={inputClass} rows={2} value={jobForm.requirements} onChange={(e) => setJobForm({ ...jobForm, requirements: e.target.value })} /></div>
           <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Responsibilities (comma separated)</label><textarea className={inputClass} rows={2} value={jobForm.responsibilities} onChange={(e) => setJobForm({ ...jobForm, responsibilities: e.target.value })} /></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Salary</label><input className={inputClass} value={jobForm.salary} onChange={(e) => setJobForm({ ...jobForm, salary: e.target.value })} /></div>
-            <div className="flex items-center gap-2 mt-6"><input type="checkbox" checked={jobForm.isActive} onChange={(e) => setJobForm({ ...jobForm, isActive: e.target.checked })} className="rounded border-gray-300 dark:border-gray-600" /><label className="text-sm text-gray-700 dark:text-gray-300">Active</label></div>
-          </div>
           <div className="flex justify-end gap-3 pt-2"><button type="button" onClick={() => { setIsJobModalOpen(false); resetJobForm(); }} className="px-4 py-2 text-sm bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg">Cancel</button><button type="submit" className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">{editingJob ? 'Update' : 'Create'}</button></div>
         </form>
       </Modal>

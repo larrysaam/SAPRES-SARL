@@ -9,8 +9,54 @@ const createJob = async (jobBody) => {
 };
 
 const queryJobs = async (filter, options) => {
-  const jobs = await Job.paginate(filter, options);
-  return jobs;
+  const {
+    limit = 10,
+    page = 1,
+    sortBy,
+    search,
+    department,
+    featured,
+    status,
+  } = options;
+  const skip = (page - 1) * limit;
+
+  // Build query from filter + extra options
+  const query = { ...filter };
+  if (search) {
+    query.$or = [
+      { title: { $regex: search, $options: 'i' } },
+      { description: { $regex: search, $options: 'i' } },
+    ];
+  }
+  if (department) {
+    query.department = department;
+  }
+  if (featured !== undefined) {
+    query.featured = featured === true || featured === 'true';
+  }
+  if (status) {
+    query.status = status;
+  }
+
+  const sort = {};
+  if (sortBy) {
+    const parts = sortBy.split(':');
+    sort[parts[0]] = parts[1] === 'desc' ? -1 : 1;
+  } else {
+    sort.createdAt = -1;
+  }
+
+  const jobs = await Job.find(query).sort(sort).skip(skip).limit(limit);
+  const totalDocuments = await Job.countDocuments(query);
+  const totalPages = Math.ceil(totalDocuments / limit);
+
+  return {
+    page: parseInt(page, 10),
+    limit: parseInt(limit, 10),
+    totalDocuments,
+    totalPages,
+    data: jobs,
+  };
 };
 
 const getJobBySlug = async (slug) => {

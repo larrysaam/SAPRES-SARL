@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   PlusIcon,
   PencilIcon,
   TrashIcon,
+  XMarkIcon,
+  CloudArrowUpIcon,
+  DocumentArrowUpIcon,
+  PhotoIcon,
 } from '@heroicons/react/24/outline';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
@@ -11,7 +15,11 @@ import Skeleton from '../components/Skeleton';
 import { toast } from '../components/Toast';
 import productService from '../services/productService';
 import categoryService from '../services/categoryService';
-import type { Product, Category } from '../types';
+import type { Product, Category, Asset } from '../types';
+
+// Cloudinary config — update these from your Cloudinary dashboard
+const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'your_cloud_name';
+const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'sapres_unsigned';
 
 type FormData = {
   name: string;
@@ -27,23 +35,32 @@ type FormData = {
   specifications: string;
   featured: boolean;
   currency: 'XAF' | 'USD' | 'EUR';
+  warranty: string;
+  seoTitle: string;
 };
 
 const emptyForm: FormData = {
-  name: '',
-  sku: '',
-  brand: '',
-  category: '',
-  price: 0,
-  discountPrice: '',
-  stock: 0,
-  status: 'draft',
-  shortDescription: '',
-  description: '',
-  specifications: '[]',
-  featured: false,
-  currency: 'XAF',
+  name: '', sku: '', brand: '', category: '', price: 0, discountPrice: '',
+  stock: 0, status: 'draft', shortDescription: '', description: '',
+  specifications: '[]', featured: false, currency: 'XAF', warranty: '', seoTitle: '',
 };
+
+/** Upload a single file to Cloudinary and return { secure_url, public_id } */
+async function uploadToCloudinary(file: File, resourceType: 'image' | 'raw' = 'image'): Promise<{ secure_url: string; public_id: string }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+  formData.append('folder', 'sapres/products');
+
+  const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/${resourceType}/upload`;
+  const res = await fetch(url, { method: 'POST', body: formData });
+  if (!res.ok) {
+    const err = await res.json().catch(() => null);
+    throw new Error(err?.error?.message || `Upload failed (${res.status})`);
+  }
+  const data = await res.json();
+  return { secure_url: data.secure_url, public_id: data.public_id };
+}
 
 const ProductsPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -59,17 +76,16 @@ const ProductsPage: React.FC = () => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [formData, setFormData] = useState<FormData>({ ...emptyForm });
   const [categoryName, setCategoryName] = useState('');
+  const [uploadingImages, setUploadingImages] = useState(false);
+  const [uploadingDatasheet, setUploadingDatasheet] = useState(false);
+  const [currentImages, setCurrentImages] = useState<Asset[]>([]); // New state for images
+  const [currentDatasheets, setCurrentDatasheets] = useState<Asset[]>([]); // New state for datasheets
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const datasheetInputRef = useRef<HTMLInputElement>(null);
 
   const { data: productsData, isLoading: productsLoading, error: productsError } = useQuery({
     queryKey: ['products', page, search, categoryFilter, statusFilter],
-    queryFn: () =>
-      productService.getProducts({
-        page,
-        limit: 10,
-        search: search || undefined,
-        category: categoryFilter || undefined,
-        status: statusFilter || undefined,
-      }),
+    queryFn: () => productService.getProducts({ page, limit: 10, search: search || undefined, category: categoryFilter || undefined, status: statusFilter || undefined }),
   });
 
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
@@ -79,85 +95,45 @@ const ProductsPage: React.FC = () => {
 
   const createMutation = useMutation({
     mutationFn: (data: Record<string, unknown>) => productService.createProduct(data as Partial<Product>),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Product created successfully');
-      setIsCreateOpen(false);
-      setFormData({ ...emptyForm });
-    },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message || 'Failed to create product';
-      toast.error(msg);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['products'] }); toast.success('Product created'); setIsCreateOpen(false); setFormData({ ...emptyForm }); },
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create product'),
   });
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) =>
-      productService.updateProduct(id, data as Partial<Product>),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Product updated successfully');
-      setIsEditOpen(false);
-      setSelectedProduct(null);
-    },
-    onError: (err: any) => {
-      const msg = err?.response?.data?.message || 'Failed to update product';
-      toast.error(msg);
-    },
+    mutationFn: ({ id, data }: { id: string; data: Record<string, unknown> }) => productService.updateProduct(id, data as Partial<Product>),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['products'] }); toast.success('Product updated'); setIsEditOpen(false); setSelectedProduct(null); },
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to update product'),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => productService.deleteProduct(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Product deleted successfully');
-      setDeleteId(null);
-      setIsDeleteOpen(false);
-    },
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['products'] }); toast.success('Product deleted'); setDeleteId(null); setIsDeleteOpen(false); },
     onError: () => toast.error('Failed to delete product'),
   });
 
   const createCategoryMutation = useMutation({
-    mutationFn: (data: { name: string }) =>
-      categoryService.createCategory(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['categories'] });
-      toast.success('Category created');
-      setCategoryName('');
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to create category');
-    },
+    mutationFn: (data: { name: string }) => categoryService.createCategory(data),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['categories'] }); toast.success('Category created'); setCategoryName(''); },
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create category'),
   });
 
   const handleEdit = (product: Product) => {
     setSelectedProduct(product);
     setFormData({
-      name: product.name || '',
-      sku: product.sku || '',
-      brand: product.brand || '',
-      category: (product.category as Category)?._id || '',
-      price: product.price || 0,
-      discountPrice: product.discountPrice ?? '',
-      stock: product.stock ?? 0,
-      status: product.status || 'draft',
-      shortDescription: product.shortDescription || '',
-      description: product.description || '',
-      specifications: JSON.stringify(product.specifications || [], null, 2),
-      featured: product.featured ?? false,
-      currency: product.currency || 'XAF',
+      name: product.name || '', sku: product.sku || '', brand: product.brand || '',
+      category: (product.category as Category)?._id || '', price: product.price || 0,
+      discountPrice: product.discountPrice ?? '', stock: product.stock ?? 0,
+      status: product.status || 'draft', shortDescription: product.shortDescription || '',
+      description: product.description || '', specifications: JSON.stringify(product.specifications || [], null, 2),
+      featured: product.featured ?? false, currency: product.currency || 'XAF',
+      warranty: product.warranty || '', seoTitle: product.seoTitle || '',
     });
+    setCurrentImages(product.images || []); // Initialize currentImages
+    setCurrentDatasheets(product.datasheets || []); // Initialize currentDatasheets
     setIsEditOpen(true);
   };
 
-  const handleDelete = (id: string) => {
-    setDeleteId(id);
-    setIsDeleteOpen(true);
-  };
-
-  const handleFormChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     if (type === 'checkbox') {
       setFormData((prev) => ({ ...prev, [name]: (e.target as HTMLInputElement).checked }));
@@ -170,195 +146,210 @@ const ProductsPage: React.FC = () => {
 
   const buildPayload = (): Record<string, unknown> => {
     let specs: Record<string, string>[] = [];
-    try {
-      specs = JSON.parse(formData.specifications);
-      if (!Array.isArray(specs)) specs = [];
-    } catch {
-      specs = [];
-    }
+    try { specs = JSON.parse(formData.specifications); if (!Array.isArray(specs)) specs = []; } catch { specs = []; }
     return {
-      name: formData.name,
-      sku: formData.sku,
-      brand: formData.brand,
-      category: formData.category,
-      price: formData.price,
+      name: formData.name, sku: formData.sku, brand: formData.brand,
+      category: formData.category, price: formData.price,
       discountPrice: formData.discountPrice === '' ? undefined : formData.discountPrice,
-      stock: formData.stock,
-      status: formData.status,
-      shortDescription: formData.shortDescription,
-      description: formData.description,
-      specifications: specs,
-      featured: formData.featured,
-      currency: formData.currency,
+      stock: formData.stock, status: formData.status,
+      shortDescription: formData.shortDescription, description: formData.description,
+      specifications: specs, featured: formData.featured, currency: formData.currency,
+      warranty: formData.warranty || undefined, seoTitle: formData.seoTitle || undefined,
+      images: currentImages, // Include current images in payload
+      datasheets: currentDatasheets, // Include current datasheets in payload
     };
   };
 
-  const handleCreateSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    createMutation.mutate(buildPayload());
-  };
+  /** Upload multiple images to Cloudinary, then update local state */
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    if (currentImages.length + files.length > 7) { toast.warning('Maximum 7 images allowed'); return; }
 
-  const handleEditSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedProduct?._id) {
-      updateMutation.mutate({ id: selectedProduct._id, data: buildPayload() });
+    setUploadingImages(true);
+    try {
+      const results = await Promise.all(Array.from(files).map((f) => uploadToCloudinary(f, 'image')));
+      const assets = results.map((r) => ({ publicId: r.public_id, secureUrl: r.secure_url, format: 'jpg', bytes: 0 }));
+      setCurrentImages((prev) => [...prev, ...assets]);
+      toast.success(`${assets.length} image(s) uploaded`);
+    } catch (err: any) {
+      toast.error(err.message || 'Image upload failed');
+    } finally {
+      setUploadingImages(false);
+      if (imageInputRef.current) imageInputRef.current.value = '';
     }
   };
 
+  /** Upload a PDF datasheet to Cloudinary, then update local state */
+  const handleDatasheetUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const file = files[0];
+    if (!file || file.type !== 'application/pdf') { toast.warning('Only PDF files allowed'); return; }
+    if (currentDatasheets.length > 0) { toast.warning('Only one datasheet allowed'); return; }
+
+    setUploadingDatasheet(true);
+    try {
+      const result = await uploadToCloudinary(file, 'raw');
+      const asset = { publicId: result.public_id, secureUrl: result.secure_url, format: 'pdf', bytes: file.size };
+      setCurrentDatasheets([asset]);
+      toast.success('Datasheet uploaded');
+    } catch (err: any) {
+      toast.error(err.message || 'Datasheet upload failed');
+    } finally {
+      setUploadingDatasheet(false);
+      if (datasheetInputRef.current) datasheetInputRef.current.value = '';
+    }
+  };
+
+  const inputClass = 'mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500';
+
+  const handleRemoveImage = (publicId: string) => {
+    setCurrentImages((prev) => prev.filter((img) => img.publicId !== publicId));
+  };
+
+  const handleRemoveDatasheet = (publicId: string) => {
+    setCurrentDatasheets((prev) => prev.filter((ds) => ds.publicId !== publicId));
+  };
+
   const renderForm = (isEdit: boolean) => (
-    <form onSubmit={isEdit ? handleEditSubmit : handleCreateSubmit} className="space-y-4">
+    <form onSubmit={(e) => { e.preventDefault(); (isEdit ? handleEditSubmit : handleCreateSubmit)(e); }} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name *</label>
-          <input type="text" name="name" value={formData.name} onChange={handleFormChange} required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">SKU *</label>
-          <input type="text" name="sku" value={formData.sku} onChange={handleFormChange} required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Brand *</label>
-          <input type="text" name="brand" value={formData.brand} onChange={handleFormChange} required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category *</label>
-          <select name="category" value={formData.category} onChange={handleFormChange} required
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500">
-            <option value="">Select a category</option>
-            {(categories as Category[]).map((cat) => (
-              <option key={cat._id} value={cat._id}>{cat.name}</option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Price *</label>
-          <input type="number" name="price" value={formData.price || ''} onChange={handleFormChange} required min="0" step="0.01"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Discount Price</label>
-          <input type="number" name="discountPrice" value={formData.discountPrice} onChange={handleFormChange} min="0" step="0.01"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Stock *</label>
-          <input type="number" name="stock" value={formData.stock} onChange={handleFormChange} required min="0"
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500" />
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
-          <select name="status" value={formData.status} onChange={handleFormChange}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500">
-            <option value="draft">Draft</option>
-            <option value="published">Published</option>
-            <option value="archived">Archived</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Currency</label>
-          <select name="currency" value={formData.currency} onChange={handleFormChange}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500">
-            <option value="XAF">XAF</option>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-          </select>
-        </div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Name *</label>
+          <input type="text" name="name" value={formData.name} onChange={handleFormChange} required className={inputClass} /></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">SKU *</label>
+          <input type="text" name="sku" value={formData.sku} onChange={handleFormChange} required className={inputClass} /></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Brand *</label>
+          <input type="text" name="brand" value={formData.brand} onChange={handleFormChange} required className={inputClass} /></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category *</label>
+          <select name="category" value={formData.category} onChange={handleFormChange} required className={inputClass}>
+            <option value="">Select category</option>
+            {(categories as Category[]).map((cat) => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
+          </select></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Price *</label>
+          <input type="number" name="price" value={formData.price || ''} onChange={handleFormChange} required min="0" step="0.01" className={inputClass} /></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Discount Price</label>
+          <input type="number" name="discountPrice" value={formData.discountPrice} onChange={handleFormChange} min="0" step="0.01" className={inputClass} /></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Stock *</label>
+          <input type="number" name="stock" value={formData.stock} onChange={handleFormChange} required min="0" className={inputClass} /></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Currency</label>
+          <select name="currency" value={formData.currency} onChange={handleFormChange} className={inputClass}>
+            <option value="XAF">XAF</option><option value="USD">USD</option><option value="EUR">EUR</option>
+          </select></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Warranty</label>
+          <input type="text" name="warranty" value={formData.warranty} onChange={handleFormChange} className={inputClass} placeholder="e.g. 2 years" /></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">SEO Title</label>
+          <input type="text" name="seoTitle" value={formData.seoTitle} onChange={handleFormChange} className={inputClass} /></div>
+        <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Status</label>
+          <select name="status" value={formData.status} onChange={handleFormChange} className={inputClass}>
+            <option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option>
+          </select></div>
       </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Short Description *</label>
-        <textarea name="shortDescription" value={formData.shortDescription} onChange={handleFormChange} required rows={2}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description *</label>
-        <textarea name="description" value={formData.description} onChange={handleFormChange} required rows={4}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Specifications (JSON array)</label>
-        <textarea name="specifications" value={formData.specifications} onChange={handleFormChange} rows={3}
-          className="mt-1 block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 font-mono text-sm focus:ring-2 focus:ring-indigo-500"
-          placeholder='[{"label": "Power", "value": "500W"}]' />
-      </div>
+      <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Short Description *</label>
+        <textarea name="shortDescription" value={formData.shortDescription} onChange={handleFormChange} required rows={2} className={inputClass} /></div>
+      <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description *</label>
+        <textarea name="description" value={formData.description} onChange={handleFormChange} required rows={4} className={inputClass} /></div>
+      <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Specifications (JSON array)</label>
+        <textarea name="specifications" value={formData.specifications} onChange={handleFormChange} rows={3} className={`${inputClass} font-mono text-sm`} placeholder='[{"label":"Power","value":"500W"}]' /></div>
+      <div><label className="block text-sm font-medium text-gray-700 dark:text-gray-300">SEO Description</label>
+        <textarea name="seoDescription" value={(formData as any).seoDescription || ''} onChange={handleFormChange} rows={2} className={inputClass} /></div>
       <div className="flex items-center gap-2">
-        <input type="checkbox" name="featured" checked={formData.featured} onChange={handleFormChange}
-          className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+        <input type="checkbox" name="featured" checked={formData.featured} onChange={handleFormChange} className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
         <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Featured Product</label>
       </div>
+
+      {/* Image Upload Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Product Images</h3>
+            {currentImages.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Images ({currentImages.length}/7)</h4>
+                <div className="flex flex-wrap gap-2">
+                  {currentImages.map((img, i) => (
+                    <div key={img.publicId || i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 group">
+                      <img src={img.secureUrl} alt="" className="w-full h-full object-cover" />
+                      <button type="button" onClick={() => handleRemoveImage(img.publicId)} className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <XMarkIcon className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+              <CloudArrowUpIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Upload up to 7 images (max 7 total)</p>
+              <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={handleImageUpload} disabled={uploadingImages} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              {uploadingImages && <p className="text-sm text-indigo-600 mt-2">Uploading to Cloudinary...</p>}
+            </div>
+          </div>
+
+          {/* Datasheet Upload Section */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-white">Product Datasheet</h3>
+            {currentDatasheets.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Current Datasheet</h4>
+                <div className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                  <a href={currentDatasheets[0].secureUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-2">
+                    <DocumentArrowUpIcon className="h-4 w-4" /> View PDF
+                  </a>
+                  <button type="button" onClick={() => handleRemoveDatasheet(currentDatasheets[0].publicId)} className="text-red-500 hover:text-red-700">
+                    <XMarkIcon className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            )}
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+              <DocumentArrowUpIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">Upload PDF datasheet</p>
+              <input ref={datasheetInputRef} type="file" accept="application/pdf" onChange={handleDatasheetUpload} disabled={uploadingDatasheet} className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              {uploadingDatasheet && <p className="text-sm text-indigo-600 mt-2">Uploading to Cloudinary...</p>}
+            </div>
+          </div>
+
       <div className="flex justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-        <button type="button" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}
-          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">
-          Cancel
-        </button>
-        <button type="submit" disabled={createMutation.isPending || updateMutation.isPending}
-          className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50">
-          {isEdit
-            ? (updateMutation.isPending ? 'Saving...' : 'Update Product')
-            : (createMutation.isPending ? 'Creating...' : 'Create Product')}
+        <button type="button" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }} className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">Cancel</button>
+        <button type="submit" disabled={createMutation.isPending || updateMutation.isPending} className="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+          {(isEdit ? updateMutation.isPending : createMutation.isPending) ? 'Saving...' : isEdit ? 'Update Product' : 'Create Product'}
         </button>
       </div>
     </form>
   );
 
+  const handleCreateSubmit = (e: React.FormEvent) => { createMutation.mutate(buildPayload()); };
+  const handleEditSubmit = (e: React.FormEvent) => { if (selectedProduct?._id) updateMutation.mutate({ id: selectedProduct._id, data: buildPayload() }); };
+
   const columns = [
     { key: 'name', header: 'Name', render: (p: Product) => <span className="font-medium">{p.name}</span> },
     { key: 'sku', header: 'SKU' },
     { key: 'brand', header: 'Brand' },
-    {
-      key: 'price', header: 'Price',
-      render: (p: Product) => (
-        <span>
-          {p.discountPrice ? (
-            <><span className="line-through text-gray-400 mr-1">{p.price?.toLocaleString()}</span><span className="text-green-600 dark:text-green-400 font-medium">{p.discountPrice?.toLocaleString()} XAF</span></>
-          ) : <span>{p.price?.toLocaleString()} XAF</span>}
-        </span>
-      ),
-    },
-    { key: 'stock', header: 'Stock', render: (p: Product) => (
-      <span className={p.stock !== undefined && p.stock < 10 ? 'text-red-600 dark:text-red-400 font-medium' : ''}>{p.stock}</span>
-    )},
+    { key: 'price', header: 'Price', render: (p: Product) => <span>{p.price?.toLocaleString()} XAF</span> },
+    { key: 'stock', header: 'Stock', render: (p: Product) => <span className={p.stock < 10 ? 'text-red-600 font-medium' : ''}>{p.stock}</span> },
     { key: 'category', header: 'Category', render: (p: Product) => <span>{(p.category as Category)?.name || 'N/A'}</span> },
     { key: 'status', header: 'Status', render: (p: Product) => {
-      const colors: Record<string, string> = {
-        published: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-        draft: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-        archived: 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-      };
-      return <span className={`px-2 py-1 text-xs font-medium rounded-full ${colors[p.status] || colors.draft}`}>{p.status || 'draft'}</span>;
+      const colors: Record<string, string> = { published: 'bg-green-100 text-green-800', draft: 'bg-yellow-100 text-yellow-800', archived: 'bg-gray-100 text-gray-800' };
+      return <span className={`px-2 py-1 text-xs font-medium rounded-full ${colors[p.status] || colors.draft}`}>{p.status}</span>;
     }},
+    { key: 'images', header: 'Images', render: (p: Product) => <span>{p.images?.length || 0}</span> },
   ];
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Products</h1>
-        <div className="flex gap-3">
-          <button onClick={() => setIsCategoryOpen(true)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
-            Manage Categories
-          </button>
-          <button onClick={() => { setFormData({ ...emptyForm }); setIsCreateOpen(true); }}
-            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700">
-            <PlusIcon className="h-4 w-4" /> Add Product
-          </button>
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => setIsCategoryOpen(true)} className="px-4 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">Manage Categories</button>
+          <button onClick={() => { setFormData({ ...emptyForm }); setCurrentImages([]); setCurrentDatasheets([]); setIsCreateOpen(true); }} className="flex items-center gap-2 px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700"><PlusIcon className="h-4 w-4" /> Add Product</button>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-4">
-        <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-          <option value="">All Categories</option>
-          {(categories as Category[]).map((cat) => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
+        <select value={categoryFilter} onChange={(e) => { setCategoryFilter(e.target.value); setPage(1); }} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+          <option value="">All Categories</option>{(categories as Category[]).map((cat) => <option key={cat._id} value={cat._id}>{cat.name}</option>)}
         </select>
-        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }}
-          className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
-          <option value="">All Statuses</option>
-          <option value="published">Published</option>
-          <option value="draft">Draft</option>
-          <option value="archived">Archived</option>
+        <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(1); }} className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100">
+          <option value="">All Statuses</option><option value="published">Published</option><option value="draft">Draft</option><option value="archived">Archived</option>
         </select>
       </div>
 
@@ -371,76 +362,48 @@ const ProductsPage: React.FC = () => {
         totalPages={productsData?.totalPages || 1}
         onPageChange={setPage}
         onSearch={(q) => { setSearch(q); setPage(1); }}
-        searchPlaceholder="Search products..."
         actions={(product: Product) => (
-          <div className="flex items-center gap-1">
-            <button onClick={(e) => { e.stopPropagation(); handleEdit(product); }}
-              className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400" title="Edit"><PencilIcon className="h-4 w-4" /></button>
-            <button onClick={(e) => { e.stopPropagation(); handleDelete(product._id!); }}
-              className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400" title="Delete"><TrashIcon className="h-4 w-4" /></button>
+          <div className="flex items-center gap-1 flex-nowrap">
+            <button onClick={() => handleEdit(product)} className="p-1.5 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400" title="Edit"><PencilIcon className="h-4 w-4" /></button>
+            <button onClick={() => { setDeleteId(product._id!); setIsDeleteOpen(true); }} className="p-1.5 rounded-lg text-red-600 hover:bg-red-50 dark:text-red-400" title="Delete"><TrashIcon className="h-4 w-4" /></button>
           </div>
         )}
       />
 
       {/* Create Modal */}
-      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create Product" size="xl">
-        {renderForm(false)}
-      </Modal>
-
+      <Modal isOpen={isCreateOpen} onClose={() => setIsCreateOpen(false)} title="Create Product" size="xl">{renderForm(false)}</Modal>
       {/* Edit Modal */}
-      <Modal isOpen={isEditOpen} onClose={() => { setIsEditOpen(false); setSelectedProduct(null); }} title="Edit Product" size="xl">
-        {renderForm(true)}
-      </Modal>
-
+      <Modal isOpen={isEditOpen} onClose={() => { setIsEditOpen(false); setSelectedProduct(null); }} title="Edit Product" size="xl">{renderForm(true)}</Modal>
       {/* Delete Modal */}
       <Modal isOpen={isDeleteOpen} onClose={() => { setIsDeleteOpen(false); setDeleteId(null); }} title="Delete Product" size="sm">
-        <p className="text-gray-600 dark:text-gray-400 mb-4">Are you sure you want to delete this product? This action cannot be undone.</p>
+        <p className="text-gray-600 dark:text-gray-400 mb-4">Are you sure you want to delete this product?</p>
         <div className="flex justify-end gap-3">
-          <button onClick={() => { setIsDeleteOpen(false); setDeleteId(null); }}
-            className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600">Cancel</button>
-          <button onClick={() => deleteId && deleteMutation.mutate(deleteId)} disabled={deleteMutation.isPending}
-            className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50">
-            {deleteMutation.isPending ? 'Deleting...' : 'Delete'}</button>
+          <button onClick={() => { setIsDeleteOpen(false); setDeleteId(null); }} className="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg">Cancel</button>
+          <button onClick={() => deleteMutation.mutate(deleteId!)} disabled={deleteMutation.isPending} className="px-4 py-2 text-sm text-white bg-red-600 rounded-lg hover:bg-red-700 disabled:opacity-50">{deleteMutation.isPending ? 'Deleting...' : 'Delete'}</button>
         </div>
       </Modal>
-
       {/* Category Modal */}
       <Modal isOpen={isCategoryOpen} onClose={() => setIsCategoryOpen(false)} title="Manage Categories" size="lg">
         <div className="space-y-6">
           <div>
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Existing Categories</h3>
-            {categoriesLoading ? (
-              <div className="space-y-2"><Skeleton className="h-8 w-full" /><Skeleton className="h-8 w-3/4" /></div>
-            ) : (categories as Category[]).length === 0 ? (
-              <p className="text-sm text-gray-500 dark:text-gray-400">No categories yet. Create one below.</p>
-            ) : (
+            {categoriesLoading ? <><Skeleton className="h-8 w-full" /><Skeleton className="h-8 w-3/4" /></> : (categories as Category[]).length === 0 ? <p className="text-sm text-gray-500 dark:text-gray-400">No categories</p> : (
               <div className="space-y-2 max-h-60 overflow-y-auto">
-                {(categories as Category[]).map((cat) => (
-                  <div key={cat._id} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded">
-                    <span className="text-sm text-gray-900 dark:text-gray-100">{cat.name}</span>
-                  </div>
-                ))}
+                {(categories as Category[]).map((cat) => <div key={cat._id} className="flex justify-between p-2 bg-gray-50 dark:bg-gray-700/50 rounded"><span className="text-sm text-gray-900 dark:text-gray-100">{cat.name}</span></div>)}
               </div>
             )}
           </div>
           <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
             <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Add New Category</h3>
-            <div className="flex gap-3 items-end">
-              <div className="flex-1">
-                <input type="text" value={categoryName}
-                  onChange={(e) => setCategoryName(e.target.value)}
-                  placeholder="Category name"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 text-sm" />
-              </div>
-              <button onClick={() => { if (categoryName.trim()) createCategoryMutation.mutate({ name: categoryName.trim() }); }}
-                disabled={createCategoryMutation.isPending || !categoryName.trim()}
-                className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50">
-                {createCategoryMutation.isPending ? '...' : 'Add'}
-              </button>
+            <div className="flex gap-3">
+              <input type="text" value={categoryName} onChange={(e) => setCategoryName(e.target.value)} placeholder="Category name" className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm" />
+              <button onClick={() => createCategoryMutation.mutate({ name: categoryName.trim() })} disabled={createCategoryMutation.isPending || !categoryName.trim()} className="px-4 py-2 text-sm text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50">{createCategoryMutation.isPending ? '...' : 'Add'}</button>
             </div>
           </div>
         </div>
       </Modal>
+
+      
     </div>
   );
 };

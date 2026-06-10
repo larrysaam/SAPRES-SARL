@@ -152,12 +152,19 @@ export interface Job {
   slug: string;
   department: string;
   location: string;
-  type: 'full-time' | 'part-time' | 'contract' | 'internship';
+  employmentType: 'full-time' | 'part-time' | 'contract' | 'internship' | 'temporary';
   description: string;
   requirements: string[];
   responsibilities: string[];
-  salary?: string;
-  isActive: boolean;
+  benefits: string[];
+  salaryRange?: string;
+  experienceLevel?: string;
+  numberOfPositions?: number;
+  applicationDeadline: string;
+  status: 'draft' | 'open' | 'closed' | 'archived';
+  featured: boolean;
+  seoTitle?: string;
+  seoDescription?: string;
   createdAt: string;
   updatedAt: string;
 }

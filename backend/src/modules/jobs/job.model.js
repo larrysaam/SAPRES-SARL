@@ -78,9 +78,18 @@ const jobSchema = new mongoose.Schema(
 );
 
 // Auto-generate slug from title before saving
-jobSchema.pre('save', function (next) {
+jobSchema.pre('save', async function (next) {
   if (!this.isModified('title')) return next();
-  this.slug = slugify(this.title);
+  let slug = slugify(this.title);
+  if (!slug) {
+    slug = 'job-' + Date.now();
+  }
+  // Ensure slug uniqueness by appending a counter if needed
+  const existing = await Job.findOne({ slug, _id: { $ne: this._id } });
+  if (existing) {
+    slug = slug + '-' + Date.now();
+  }
+  this.slug = slug;
   next();
 });
 

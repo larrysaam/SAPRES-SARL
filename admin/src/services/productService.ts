@@ -25,29 +25,12 @@ const deleteProduct = async (productId: string): Promise<void> => {
   await apiClient.delete(`/products/${productId}`);
 };
 
-const uploadImages = async (productId: string, images: { publicId: string; secureUrl: string; format: string; bytes: number }[]): Promise<{ images: any[] }> => {
-  const response = await apiClient.post(`/products/${productId}/images`, { images });
-  return response.data?.data || response.data;
-};
-
-const deleteImage = async (productId: string, publicId: string): Promise<void> => {
-  await apiClient.delete(`/products/${productId}/images/${publicId}`);
-};
-
-const uploadDatasheet = async (productId: string, datasheet: { publicId: string; secureUrl: string; format: string; bytes: number }): Promise<{ datasheet: any }> => {
-  const response = await apiClient.post(`/products/${productId}/datasheets`, { datasheet });
-  return response.data?.data || response.data;
-};
-
 const productService = {
   getProducts,
   getProduct,
   createProduct,
   updateProduct,
   deleteProduct,
-  uploadImages,
-  deleteImage,
-  uploadDatasheet,
 };
 
 export default productService;

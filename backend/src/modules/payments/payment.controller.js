@@ -1,9 +1,16 @@
 import httpStatus from 'http-status';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import PaymentService from './payment.service.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
 import axios from 'axios';
 
 const CINETPAY_BASE_URL = 'https://api-checkout.cinetpay.com/v2/payment';
+
+const getAllPayments = asyncHandler(async (req, res) => {
+  const { page, limit, status } = req.query;
+  const payments = await PaymentService.getAll({ page, limit, status });
+  return new ApiResponse(httpStatus.OK, payments, 'Payments fetched successfully').send(res);
+});
 
 const initiatePayment = asyncHandler(async (req, res) => {
   const { amount, currency, description, customer_id, transaction_id, return_url, cancel_url } = req.body;
@@ -65,4 +72,4 @@ const handleCinetpayCallback = asyncHandler(async (req, res) => {
   }
 });
 
-export default { initiatePayment, handleCinetpayCallback };
+export default { getAllPayments, initiatePayment, handleCinetpayCallback };

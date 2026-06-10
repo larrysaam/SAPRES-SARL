@@ -157,7 +157,7 @@ const OrdersPage: React.FC = () => {
         loading={isLoading}
         error={error ? 'Failed to load orders' : null}
         page={page}
-        totalPages={Math.ceil((ordersData?.total || 0) / 10) || 1}
+        totalPages={ordersData?.totalPages || 1}
         onPageChange={setPage}
         onSearch={(q) => { setSearch(q); setPage(1); }}
         actions={(order: Order) => (

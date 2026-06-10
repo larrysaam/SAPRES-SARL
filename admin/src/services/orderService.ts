@@ -3,7 +3,19 @@ import type { Order, PaginatedResponse } from '../types';
 
 const getOrders = async (params?: { page?: number; limit?: number; status?: string }): Promise<PaginatedResponse<Order>> => {
   const response = await apiClient.get('/orders', { params });
-  return { data: response.data?.data || [], ...response.data };
+  // Backend wraps in ApiResponse: { success, message, data: { data: [...], pagination: { page, limit, total, pages } } }
+  const apiData = response.data?.data;
+  const orders = Array.isArray(apiData?.data) ? apiData.data : (Array.isArray(apiData) ? apiData : []);
+  const pagination = apiData?.pagination || {};
+  return {
+    data: orders,
+    page: pagination.page || (response.data?.page || 1),
+    limit: pagination.limit || (response.data?.limit || 10),
+    totalDocuments: pagination.total || (response.data?.total || 0),
+    totalPages: pagination.pages || (response.data?.pages || 1),
+    success: response.data?.success !== false,
+    message: response.data?.message || 'Orders fetched successfully',
+  };
 };
 
 const getOrder = async (id: string): Promise<Order> => {

@@ -14,21 +14,22 @@ router.post(
   applicationController.createApplication
 );
 
-// Admin routes
+// Admin routes — includes all admin roles that need access to the Recruitment page
+const adminRoles = ['super_admin', 'hr_admin', 'recruiter', 'sales_admin'];
 router.route('/')
-  .get(auth, authorize(['super_admin', 'hr_admin']), validate(applicationValidation.getApplications), applicationController.getApplications);
+  .get(auth(), authorize(...adminRoles), validate(applicationValidation.getApplications), applicationController.getApplications);
 
 router.route('/stats')
-  .get(auth, authorize(['super_admin', 'hr_admin']), applicationController.getApplicationStats);
+  .get(auth(), authorize(...adminRoles), applicationController.getApplicationStats);
 
 router.route('/:applicationId')
-  .get(auth, authorize(['super_admin', 'hr_admin']), validate(applicationValidation.getApplication), applicationController.getApplication)
-  .delete(auth, authorize(['super_admin']), validate(applicationValidation.deleteApplication), applicationController.deleteApplication);
+  .get(auth(), authorize(...adminRoles), validate(applicationValidation.getApplication), applicationController.getApplication)
+  .delete(auth(), authorize(['super_admin']), validate(applicationValidation.deleteApplication), applicationController.deleteApplication);
 
 router.route('/:applicationId/status')
-  .patch(auth, authorize(['super_admin', 'hr_admin']), validate(applicationValidation.updateApplicationStatus), applicationController.updateApplicationStatus);
+  .patch(auth(), authorize(...adminRoles), validate(applicationValidation.updateApplicationStatus), applicationController.updateApplicationStatus);
 
 router.route('/:applicationId/download/:documentType')
-  .get(auth, authorize(['super_admin', 'hr_admin']), validate(applicationValidation.downloadDocument), applicationController.downloadDocument);
+  .get(auth(), authorize(...adminRoles), validate(applicationValidation.downloadDocument), applicationController.downloadDocument);
 
 export default router;
