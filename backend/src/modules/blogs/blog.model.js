@@ -133,4 +133,6 @@ blogSchema.query.notDeleted = function () {
   return this.where({ deletedAt: { $exists: false } });
 };
 
-export default mongoose;
+const Blog = mongoose.model('Blog', blogSchema);
+
+export default Blog;

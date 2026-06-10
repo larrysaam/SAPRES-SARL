@@ -1,13 +1,13 @@
+import httpStatus from 'http-status';
 import BlogService from './blog.service.js';
-import {ApiResponse} from '../../utils/ApiResponse.js';
-import cloudinary from '../../config/cloudinary.js';
+import { ApiResponse } from '../../utils/ApiResponse.js';
 
 class BlogController {
   static async getAll(req, res, next) {
     try {
       const { page, limit, category, featured, search, tag, sort } = req.query;
       const result = await BlogService.getAll({ page, limit, category, featured, search, tag, sort });
-      res.json(ApiResponse.success(result, 'Blogs retrieved successfully'));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, result, 'Blogs retrieved successfully'));
     } catch (err) {
       next(err);
     }
@@ -16,7 +16,7 @@ class BlogController {
   static async getBySlug(req, res, next) {
     try {
       const blog = await BlogService.getBySlug(req.params.slug);
-      res.json(ApiResponse.success(blog));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, blog, 'Blog retrieved successfully'));
     } catch (err) {
       next(err);
     }
@@ -25,7 +25,7 @@ class BlogController {
   static async getById(req, res, next) {
     try {
       const blog = await BlogService.getById(req.params.id);
-      res.json(ApiResponse.success(blog));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, blog, 'Blog retrieved successfully'));
     } catch (err) {
       next(err);
     }
@@ -34,7 +34,7 @@ class BlogController {
   static async create(req, res, next) {
     try {
       const blog = await BlogService.create(req.body, req.user.id);
-      res.status(201).json(ApiResponse.success(blog, 'Blog created successfully'));
+      res.status(httpStatus.CREATED).json(new ApiResponse(httpStatus.CREATED, blog, 'Blog created successfully'));
     } catch (err) {
       next(err);
     }
@@ -43,7 +43,7 @@ class BlogController {
   static async update(req, res, next) {
     try {
       const blog = await BlogService.update(req.params.id, req.body);
-      res.json(ApiResponse.success(blog, 'Blog updated successfully'));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, blog, 'Blog updated successfully'));
     } catch (err) {
       next(err);
     }
@@ -52,7 +52,7 @@ class BlogController {
   static async delete(req, res, next) {
     try {
       await BlogService.delete(req.params.id);
-      res.json(ApiResponse.success(null, 'Blog deleted successfully'));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, null, 'Blog deleted successfully'));
     } catch (err) {
       next(err);
     }
@@ -65,8 +65,8 @@ class BlogController {
         throw new Error('No featured image data provided');
       }
       
-      const blog = await BlogService.uploadFeaturedImage(req.params.id, featuredImage);
-      res.json(ApiResponse.success(featuredImage, 'Featured image uploaded successfully'));
+      await BlogService.uploadFeaturedImage(req.params.id, featuredImage);
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, featuredImage, 'Featured image uploaded successfully'));
     } catch (err) {
       next(err);
     }
@@ -78,7 +78,7 @@ class BlogController {
       if (!images || images.length === 0) throw new Error('No image data provided');
       
       await BlogService.uploadGallery(req.params.id, images);
-      res.json(ApiResponse.success(images, 'Gallery uploaded successfully'));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, images, 'Gallery uploaded successfully'));
     } catch (err) {
       next(err);
     }
@@ -88,7 +88,7 @@ class BlogController {
     try {
       const { blogId, imageId } = req.params;
       await BlogService.deleteGalleryImage(blogId, imageId);
-      res.json(ApiResponse.success(null, 'Image deleted successfully'));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, null, 'Image deleted successfully'));
     } catch (err) {
       next(err);
     }
@@ -98,7 +98,7 @@ class BlogController {
     try {
       const limit = req.query.limit || 10;
       const blogs = await BlogService.getFeatured(limit);
-      res.json(ApiResponse.success(blogs));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, blogs, 'Featured blogs retrieved successfully'));
     } catch (err) {
       next(err);
     }
@@ -108,7 +108,7 @@ class BlogController {
     try {
       const limit = req.query.limit || 5;
       const blogs = await BlogService.getRelated(req.params.slug, limit);
-      res.json(ApiResponse.success(blogs));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, blogs, 'Related blogs retrieved successfully'));
     } catch (err) {
       next(err);
     }
@@ -117,7 +117,7 @@ class BlogController {
   static async incrementViews(req, res, next) {
     try {
       await BlogService.incrementViews(req.params.id);
-      res.json(ApiResponse.success(null, 'View recorded successfully'));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, null, 'View recorded successfully'));
     } catch (err) {
       next(err);
     }
@@ -128,7 +128,7 @@ class BlogController {
       const { q } = req.query;
       if (!q) throw new Error('Search query required');
       const results = await BlogService.search(q);
-      res.json(ApiResponse.success(results));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, results, 'Search results'));
     } catch (err) {
       next(err);
     }
@@ -137,7 +137,7 @@ class BlogController {
   static async getStats(req, res, next) {
     try {
       const stats = await BlogService.getStats();
-      res.json(ApiResponse.success(stats));
+      res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, stats, 'Blog stats retrieved successfully'));
     } catch (err) {
       next(err);
     }

@@ -3,7 +3,19 @@ import type { Blog, PaginatedResponse } from '../types';
 
 const getBlogs = async (params?: { page?: number; limit?: number; isPublished?: boolean }): Promise<PaginatedResponse<Blog>> => {
   const response = await apiClient.get('/blogs', { params });
-  return { data: response.data?.data || [], ...response.data };
+  const result = response.data?.data || response.data;
+  if (Array.isArray(result)) {
+    return { success: true, message: 'Blogs retrieved', data: result as Blog[], page: 1, limit: 10, totalDocuments: 0, totalPages: 1 };
+  }
+  return {
+    success: true,
+    message: 'Blogs retrieved',
+    data: (result?.data || result || []) as Blog[],
+    page: result?.page || 1,
+    limit: result?.limit || 10,
+    totalDocuments: result?.total || result?.totalDocuments || 0,
+    totalPages: result?.totalPages || 1,
+  };
 };
 
 const getBlog = async (slug: string): Promise<Blog> => {

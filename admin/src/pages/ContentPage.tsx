@@ -84,7 +84,10 @@ const ContentPage: React.FC = () => {
     coverImage: '',
     author: '',
     tags: '',
-    isPublished: false,
+    category: 'Company News',
+    seoTitle: '',
+    seoDescription: '',
+    status: 'draft' as 'draft' | 'published',
   });
 
   // ---------- Service state ----------
@@ -291,7 +294,7 @@ const ContentPage: React.FC = () => {
   // ---------- Form helpers ----------
   const resetBlogForm = () => {
     setEditingBlog(null);
-    setBlogForm({ title: '', excerpt: '', content: '', coverImage: '', author: '', tags: '', isPublished: false });
+    setBlogForm({ title: '', excerpt: '', content: '', coverImage: '', author: '', tags: '', category: 'Company News', seoTitle: '', seoDescription: '', status: 'draft' });
   };
 
   const openBlogModal = (blog?: Blog) => {
@@ -304,7 +307,10 @@ const ContentPage: React.FC = () => {
         coverImage: blog.coverImage?.secureUrl || '',
         author: blog.author,
         tags: blog.tags.join(', '),
-        isPublished: blog.isPublished,
+        category: blog.category || 'Company News',
+        seoTitle: blog.seoTitle || blog.title,
+        seoDescription: blog.seoDescription || blog.excerpt,
+        status: blog.status || 'draft',
       });
     } else {
       resetBlogForm();
@@ -315,9 +321,16 @@ const ContentPage: React.FC = () => {
   const handleBlogSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const payload: Partial<Blog> = {
-      ...blogForm,
+      title: blogForm.title,
+      excerpt: blogForm.excerpt,
+      content: blogForm.content,
       tags: blogForm.tags.split(',').map((t) => t.trim()).filter(Boolean),
-      coverImage: blogForm.coverImage ? { secureUrl: blogForm.coverImage, publicId: '', format: '', bytes: 0 } : undefined,
+      category: blogForm.category,
+      seoTitle: blogForm.seoTitle || blogForm.title,
+      seoDescription: blogForm.seoDescription || blogForm.excerpt,
+      status: blogForm.status,
+      featuredImage: blogForm.coverImage ? { secure_url: blogForm.coverImage, public_id: 'manual', format: 'jpg', bytes: 0 } : undefined,
+      author: blogForm.author,
     };
     if (editingBlog) {
       updateBlogMutation.mutate({ id: editingBlog._id, data: payload });
@@ -823,32 +836,52 @@ const ContentPage: React.FC = () => {
       {/* Blog form modal */}
       <Modal isOpen={blogModalOpen} onClose={() => { setBlogModalOpen(false); resetBlogForm(); }} title={editingBlog ? 'Edit Blog Post' : 'Create Blog Post'} size="lg">
         <form onSubmit={handleBlogSubmit} className="space-y-4">
-          <div>
-            <label className={labelClass}>Title</label>
-            <input className={inputClass} value={blogForm.title} onChange={(e) => setBlogForm({ ...blogForm, title: e.target.value })} required />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Title *</label>
+              <input className={inputClass} value={blogForm.title} onChange={(e) => setBlogForm({ ...blogForm, title: e.target.value })} required />
+            </div>
+            <div>
+              <label className={labelClass}>Category *</label>
+              <select className={inputClass} value={blogForm.category} onChange={(e) => setBlogForm({ ...blogForm, category: e.target.value })} required>
+                <option value="Company News">Company News</option>
+                <option value="Solar Guides">Solar Guides</option>
+                <option value="Energy Tips">Energy Tips</option>
+                <option value="Product Updates">Product Updates</option>
+                <option value="Installation Tips">Installation Tips</option>
+                <option value="Success Stories">Success Stories</option>
+                <option value="Industry News">Industry News</option>
+              </select>
+            </div>
           </div>
           <div>
-            <label className={labelClass}>Excerpt</label>
-            <textarea className={inputClass} rows={2} value={blogForm.excerpt} onChange={(e) => setBlogForm({ ...blogForm, excerpt: e.target.value })} />
+            <label className={labelClass}>Excerpt *</label>
+            <textarea className={inputClass} rows={2} value={blogForm.excerpt} onChange={(e) => setBlogForm({ ...blogForm, excerpt: e.target.value })} required />
           </div>
           <div>
-            <label className={labelClass}>Content</label>
+            <label className={labelClass}>Content *</label>
             <textarea className={inputClass} rows={6} value={blogForm.content} onChange={(e) => setBlogForm({ ...blogForm, content: e.target.value })} required />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>SEO Title *</label>
+              <input className={inputClass} value={blogForm.seoTitle} onChange={(e) => setBlogForm({ ...blogForm, seoTitle: e.target.value })} required />
+            </div>
+            <div>
+              <label className={labelClass}>SEO Description *</label>
+              <input className={inputClass} value={blogForm.seoDescription} onChange={(e) => setBlogForm({ ...blogForm, seoDescription: e.target.value })} required />
+            </div>
           </div>
           <div>
             <label className={labelClass}>Cover Image URL</label>
             <input className={inputClass} value={blogForm.coverImage} onChange={(e) => setBlogForm({ ...blogForm, coverImage: e.target.value })} placeholder="https://..." />
           </div>
           <div>
-            <label className={labelClass}>Author</label>
-            <input className={inputClass} value={blogForm.author} onChange={(e) => setBlogForm({ ...blogForm, author: e.target.value })} required />
-          </div>
-          <div>
             <label className={labelClass}>Tags (comma separated)</label>
             <input className={inputClass} value={blogForm.tags} onChange={(e) => setBlogForm({ ...blogForm, tags: e.target.value })} placeholder="tech, business, news" />
           </div>
           <div className="flex items-center gap-2">
-            <input type="checkbox" checked={blogForm.isPublished} onChange={(e) => setBlogForm({ ...blogForm, isPublished: e.target.checked })} className="rounded border-gray-300 dark:border-gray-600" />
+            <input type="checkbox" checked={blogForm.status === 'published'} onChange={(e) => setBlogForm({ ...blogForm, status: e.target.checked ? 'published' : 'draft' })} className="rounded border-gray-300 dark:border-gray-600" />
             <label className="text-sm text-gray-700 dark:text-gray-300">Published</label>
           </div>
           <div className="flex justify-end gap-3 pt-2">
