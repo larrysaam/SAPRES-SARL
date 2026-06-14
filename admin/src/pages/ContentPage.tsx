@@ -137,14 +137,40 @@ const ContentPage: React.FC = () => {
   // ---------- Project state ----------
   const [projectsModalOpen, setProjectsModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const featuredImageInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
+  const beforeImagesInputRef = useRef<HTMLInputElement>(null);
+  const afterImagesInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingFeaturedImage, setUploadingFeaturedImage] = useState(false);
+  const [uploadingGallery, setUploadingGallery] = useState(false);
+  const [uploadingBeforeImages, setUploadingBeforeImages] = useState(false);
+  const [uploadingAfterImages, setUploadingAfterImages] = useState(false);
   const [projectForm, setProjectForm] = useState({
     title: '',
+    slug: '',
+    shortDescription: '',
     description: '',
     client: '',
-    location: '',
+    projectCategory: '',
+    projectType: '',
+    capacity: '',
+    duration: '',
     completionDate: '',
-    images: '',
-    isActive: true,
+    featuredImage: '', // secureUrl string
+    gallery: [] as string[], // array of secureUrl strings
+    beforeImages: [] as string[], // array of secureUrl strings
+    afterImages: [] as string[], // array of secureUrl strings
+    technologiesUsed: '', // comma separated string
+    projectChallenges: '', // comma separated string
+    projectSolutions: '', // comma separated string
+    projectResults: '', // comma separated string
+    testimonial: '', // testimonial ID or clientName for now, will adjust if needed
+    featured: false,
+    status: 'draft' as 'draft' | 'published' | 'archived',
+    displayOrder: 0,
+    seoTitle: '',
+    seoDescription: '',
+    isActive: true, // Kept from original, though not in schema, seems useful
   });
 
   // ---------- Testimonial state ----------
@@ -198,21 +224,27 @@ const ContentPage: React.FC = () => {
     const { default: apiClient } = await import('../services/apiClient');
     const res = await apiClient.get('/projects?limit=100');
     const d = res.data?.data || res.data || [];
-    return { data: Array.isArray(d) ? d : d.data || [], totalPages: 1 };
+    // Backend returns ApiResponse with data: { projects: [...], totalPages, ... }
+    const projects = Array.isArray(d) ? d : (Array.isArray(d.projects) ? d.projects : []);
+    return { data: projects, totalPages: d.totalPages || 1 };
   };
 
   const fetchTestimonials = async (): Promise<{ data: Testimonial[]; totalPages: number }> => {
     const { default: apiClient } = await import('../services/apiClient');
     const res = await apiClient.get('/testimonials?limit=100');
     const d = res.data?.data || res.data || [];
-    return { data: Array.isArray(d) ? d : d.data || [], totalPages: 1 };
+    // Backend returns ApiResponse with data: { testimonials: [...], totalPages, ... }
+    const testimonials = Array.isArray(d) ? d : (Array.isArray(d.testimonials) ? d.testimonials : []);
+    return { data: testimonials, totalPages: d.totalPages || 1 };
   };
 
   const fetchPartners = async (): Promise<{ data: Partner[]; totalPages: number }> => {
     const { default: apiClient } = await import('../services/apiClient');
     const res = await apiClient.get('/partners?limit=100');
     const d = res.data?.data || res.data || [];
-    return { data: Array.isArray(d) ? d : d.data || [], totalPages: 1 };
+    // Backend returns ApiResponse with data: { partners: [...], totalPages, ... }
+    const partners = Array.isArray(d) ? d : (Array.isArray(d.partners) ? d.partners : []);
+    return { data: partners, totalPages: d.totalPages || 1 };
   };
 
   const fetchHomepage = async (): Promise<Homepage> => {
@@ -285,22 +317,33 @@ const ContentPage: React.FC = () => {
   });
 
   // Generic mutation helper
-  const useGenericMutation = (endpoint: string, queryKey: string) =>
+  const useGenericMutation = (endpoint: string, queryKey: string, onSuccess?: () => void) =>
     useMutation({
       mutationFn: async (vars: { id?: string; data: any }) => {
         const { default: apiClient } = await import('../services/apiClient');
-        if (vars.id) {
-          const res = await apiClient.put(`/${endpoint}/${vars.id}`, vars.data);
+        try {
+          let res;
+          if (vars.id) {
+            res = await apiClient.put(`/${endpoint}/${vars.id}`, vars.data);
+          } else {
+            res = await apiClient.post(`/${endpoint}`, vars.data);
+          }
+          console.log(`API call to /${endpoint} successful:`, res); // Log success response
           return res.data;
+        } catch (error: any) {
+          console.error(`Raw API call error to /${endpoint}:`, error); // Log raw error
+          throw error; // Re-throw to trigger onError callback
         }
-        const res = await apiClient.post(`/${endpoint}`, vars.data);
-        return res.data;
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: [queryKey] });
         toast.success('Saved successfully');
+        onSuccess?.();
       },
-      onError: (err: any) => toast.error(err?.message || 'Operation failed'),
+      onError: (err: any) => {
+        console.error(`Error in ${queryKey} mutation:`, err);
+        toast.error(err?.response?.data?.message || err?.message || 'Operation failed');
+      },
     });
 
   const deleteGenericMutation = (endpoint: string, queryKey: string) =>
@@ -316,13 +359,25 @@ const ContentPage: React.FC = () => {
       onError: (err: any) => toast.error(err?.message || 'Delete failed'),
     });
 
-  const saveServiceMutation = useGenericMutation('services', 'services');
+  const saveServiceMutation = useGenericMutation('services', 'services', () => {
+    setServicesModalOpen(false);
+    resetServiceForm();
+  });
   const deleteServiceMutation = deleteGenericMutation('services', 'services');
-  const saveProjectMutation = useGenericMutation('projects', 'projects');
+  const saveProjectMutation = useGenericMutation('projects', 'projects', () => {
+    setProjectsModalOpen(false);
+    resetProjectForm();
+  });
   const deleteProjectMutation = deleteGenericMutation('projects', 'projects');
-  const saveTestimonialMutation = useGenericMutation('testimonials', 'testimonials');
+  const saveTestimonialMutation = useGenericMutation('testimonials', 'testimonials', () => {
+    setTestimonialsModalOpen(false);
+    resetTestimonialForm();
+  });
   const deleteTestimonialMutation = deleteGenericMutation('testimonials', 'testimonials');
-  const savePartnerMutation = useGenericMutation('partners', 'partners');
+  const savePartnerMutation = useGenericMutation('partners', 'partners', () => {
+    setPartnersModalOpen(false);
+    resetPartnerForm();
+  });
   const deletePartnerMutation = deleteGenericMutation('partners', 'partners');
 
   // ---------- Form helpers ----------
@@ -408,8 +463,6 @@ const ContentPage: React.FC = () => {
       id: editingService?._id,
       data: payload,
     });
-    setServicesModalOpen(false);
-    resetServiceForm();
   };
 
   const resetServiceForm = () => {
@@ -449,30 +502,119 @@ const ContentPage: React.FC = () => {
 
   const handleProjectSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('handleProjectSubmit called'); // Added log
+    const payload: Record<string, any> = {
+      title: projectForm.title,
+      shortDescription: projectForm.shortDescription,
+      description: projectForm.description,
+      projectCategory: projectForm.projectCategory,
+      projectType: projectForm.projectType,
+      capacity: projectForm.capacity,
+      duration: projectForm.duration,
+      completionDate: projectForm.completionDate,
+      featured: projectForm.featured,
+      status: projectForm.status,
+      displayOrder: projectForm.displayOrder,
+      seoTitle: projectForm.seoTitle,
+      seoDescription: projectForm.seoDescription,
+    };
+
+    // Handle client object
+    if (projectForm.client) {
+      payload.client = { name: projectForm.client };
+    }
+
+    // Handle testimonial object
+    if (projectForm.testimonial) {
+      payload.testimonial = { clientName: projectForm.testimonial };
+    }
+
+    // Convert comma-separated strings to arrays
+    if (projectForm.technologiesUsed) {
+      payload.technologiesUsed = projectForm.technologiesUsed.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (projectForm.projectChallenges) {
+      payload.projectChallenges = projectForm.projectChallenges.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (projectForm.projectSolutions) {
+      payload.projectSolutions = projectForm.projectSolutions.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+    if (projectForm.projectResults) {
+      payload.projectResults = projectForm.projectResults.split(',').map((s) => s.trim()).filter(Boolean);
+    }
+
+    // Image fields are handled by separate upload routes, so they should not be part of the initial project creation payload.
+    // The frontend form state still holds the URLs, but they are not sent in this initial payload.
+    // The backend will link images after they are uploaded via their specific routes.
+
+    console.log('Project payload:', payload); // Added log
+
     saveProjectMutation.mutate({
       id: editingProject?._id,
-      data: projectForm,
+      data: payload,
     });
-    setProjectsModalOpen(false);
-    resetProjectForm();
   };
 
   const resetProjectForm = () => {
     setEditingProject(null);
-    setProjectForm({ title: '', description: '', client: '', location: '', completionDate: '', images: '', isActive: true });
+    setProjectForm({
+      title: '',
+      slug: '',
+      shortDescription: '',
+      description: '',
+      client: '',
+      projectCategory: '',
+      projectType: '',
+      capacity: '',
+      duration: '',
+      completionDate: '',
+      featuredImage: '',
+      gallery: [],
+      beforeImages: [],
+      afterImages: [],
+      technologiesUsed: '',
+      projectChallenges: '',
+      projectSolutions: '',
+      projectResults: '',
+      testimonial: '',
+      featured: false,
+      status: 'draft',
+      displayOrder: 0,
+      seoTitle: '',
+      seoDescription: '',
+      isActive: true,
+    });
   };
 
   const openProjectModal = (proj?: Project) => {
     if (proj) {
       setEditingProject(proj);
       setProjectForm({
-        title: proj.title,
-        description: proj.description,
-        client: proj.client,
-        location: proj.location,
-        completionDate: proj.completionDate,
-        images: proj.images?.map((i) => i.secureUrl).join(', ') || '',
-        isActive: proj.isActive,
+        title: proj.title || '',
+        slug: proj.slug || '',
+        shortDescription: proj.shortDescription || '',
+        description: proj.description || '',
+        client: proj.client || '',
+        projectCategory: proj.projectCategory || '',
+        projectType: proj.projectType || '',
+        capacity: proj.capacity || '',
+        duration: proj.duration || '',
+        completionDate: proj.completionDate || '',
+        featuredImage: proj.featuredImage?.secureUrl || '',
+        gallery: proj.gallery?.map((img) => img.secureUrl) || [],
+        beforeImages: proj.beforeImages?.map((img) => img.secureUrl) || [],
+        afterImages: proj.afterImages?.map((img) => img.secureUrl) || [],
+        technologiesUsed: proj.technologiesUsed?.join(', ') || '',
+        projectChallenges: proj.projectChallenges?.join(', ') || '',
+        projectSolutions: proj.projectSolutions?.join(', ') || '',
+        projectResults: proj.projectResults?.join(', ') || '',
+        testimonial: proj.testimonial?._id || '', // Assuming testimonial is stored as ID or clientName
+        featured: proj.featured || false,
+        status: proj.status || 'draft',
+        displayOrder: proj.displayOrder || 0,
+        seoTitle: proj.seoTitle || '',
+        seoDescription: proj.seoDescription || '',
+        isActive: proj.isActive || true,
       });
     } else {
       resetProjectForm();
@@ -486,8 +628,6 @@ const ContentPage: React.FC = () => {
       id: editingTestimonial?._id,
       data: testimonialForm,
     });
-    setTestimonialsModalOpen(false);
-    resetTestimonialForm();
   };
 
   const resetTestimonialForm = () => {
@@ -527,8 +667,6 @@ const ContentPage: React.FC = () => {
       id: editingPartner?._id,
       data: partnerForm,
     });
-    setPartnersModalOpen(false);
-    resetPartnerForm();
   };
 
   const resetPartnerForm = () => {
@@ -1232,39 +1370,273 @@ const ContentPage: React.FC = () => {
     onCreateLabel: 'New Project',
     onOpenCreate: () => openProjectModal(),
     modal: (
-      <Modal isOpen={projectsModalOpen} onClose={() => { setProjectsModalOpen(false); resetProjectForm(); }} title={editingProject ? 'Edit Project' : 'New Project'} size="lg">
-        <form onSubmit={handleProjectSubmit} className="space-y-4">
-          <div>
-            <label className={labelClass}>Title</label>
-            <input className={inputClass} value={projectForm.title} onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })} required />
+      <Modal isOpen={projectsModalOpen} onClose={() => { setProjectsModalOpen(false); resetProjectForm(); }} title={editingProject ? 'Edit Project' : 'New Project'} size="xl">
+        <form onSubmit={handleProjectSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+          {/* Core fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Title *</label>
+              <input className={inputClass} value={projectForm.title} onChange={(e) => setProjectForm({ ...projectForm, title: e.target.value })} required />
+            </div>
+            <div>
+              <label className={labelClass}>Slug</label>
+              <input className={inputClass} value={projectForm.slug} onChange={(e) => setProjectForm({ ...projectForm, slug: e.target.value })} />
+            </div>
           </div>
           <div>
-            <label className={labelClass}>Description</label>
-            <textarea className={inputClass} rows={4} value={projectForm.description} onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })} required />
+            <label className={labelClass}>Short Description *</label>
+            <textarea className={inputClass} rows={2} value={projectForm.shortDescription} onChange={(e) => setProjectForm({ ...projectForm, shortDescription: e.target.value })} required placeholder="Brief overview of the project (10-500 chars)" />
           </div>
           <div>
-            <label className={labelClass}>Client</label>
-            <input className={inputClass} value={projectForm.client} onChange={(e) => setProjectForm({ ...projectForm, client: e.target.value })} />
+            <label className={labelClass}>Full Description *</label>
+            <textarea className={inputClass} rows={4} value={projectForm.description} onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })} required placeholder="Detailed project description (min 20 chars)" />
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>Client *</label>
+              <input className={inputClass} value={projectForm.client} onChange={(e) => setProjectForm({ ...projectForm, client: e.target.value })} required />
+            </div>
+            <div>
+              <label className={labelClass}>Project Category *</label>
+              <input className={inputClass} value={projectForm.projectCategory} onChange={(e) => setProjectForm({ ...projectForm, projectCategory: e.target.value })} required />
+            </div>
+            <div>
+              <label className={labelClass}>Project Type</label>
+              <input className={inputClass} value={projectForm.projectType} onChange={(e) => setProjectForm({ ...projectForm, projectType: e.target.value })} />
+            </div>
+            <div>
+              <label className={labelClass}>Capacity</label>
+              <input className={inputClass} value={projectForm.capacity} onChange={(e) => setProjectForm({ ...projectForm, capacity: e.target.value })} />
+            </div>
+            <div>
+              <label className={labelClass}>Duration</label>
+              <input className={inputClass} value={projectForm.duration} onChange={(e) => setProjectForm({ ...projectForm, duration: e.target.value })} />
+            </div>
+            <div>
+              <label className={labelClass}>Completion Date</label>
+              <input type="date" className={inputClass} value={projectForm.completionDate} onChange={(e) => setProjectForm({ ...projectForm, completionDate: e.target.value })} />
+            </div>
+          </div>
+
+          {/* Featured Image */}
+          <div className="brutal-card p-4">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-3">Featured Image</h4>
+            {projectForm.featuredImage && (
+              <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 mb-3 group">
+                <img src={projectForm.featuredImage} alt="Featured" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => setProjectForm({ ...projectForm, featuredImage: '' })} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <XMarkIcon className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
+              <CloudArrowUpIcon className="h-6 w-6 mx-auto text-gray-400 mb-1" />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Upload featured image to Cloudinary</p>
+              <input ref={featuredImageInputRef} type="file" accept="image/*" onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setUploadingFeaturedImage(true);
+                try {
+                  const result = await uploadToCloudinary(file);
+                  setProjectForm({ ...projectForm, featuredImage: result.secure_url });
+                  toast.success('Featured image uploaded');
+                } catch (err: any) {
+                  toast.error(err.message || 'Upload failed');
+                } finally {
+                  setUploadingFeaturedImage(false);
+                  if (featuredImageInputRef.current) featuredImageInputRef.current.value = '';
+                }
+              }} disabled={uploadingFeaturedImage} className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              {uploadingFeaturedImage && <p className="text-xs text-emerald-600 mt-1">Uploading...</p>}
+            </div>
+          </div>
+
+          {/* Gallery */}
+          <div className="brutal-card p-4">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-3">Gallery Images</h4>
+            {projectForm.gallery.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {projectForm.gallery.map((url, i) => (
+                  <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 group">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setProjectForm({ ...projectForm, gallery: projectForm.gallery.filter((_, j) => j !== i) })} className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <XMarkIcon className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
+              <CloudArrowUpIcon className="h-6 w-6 mx-auto text-gray-400 mb-1" />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Upload gallery images (max 10)</p>
+              <input ref={galleryInputRef} type="file" accept="image/*" multiple onChange={async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                setUploadingGallery(true);
+                try {
+                  const results = await Promise.all(Array.from(files).map((f) => uploadToCloudinary(f)));
+                  const urls = results.map((r) => r.secure_url);
+                  setProjectForm({ ...projectForm, gallery: [...projectForm.gallery, ...urls] });
+                  toast.success(`${urls.length} image(s) uploaded`);
+                } catch (err: any) {
+                  toast.error(err.message || 'Upload failed');
+                } finally {
+                  setUploadingGallery(false);
+                  if (galleryInputRef.current) galleryInputRef.current.value = '';
+                }
+              }} disabled={uploadingGallery} className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              {uploadingGallery && <p className="text-xs text-emerald-600 mt-1">Uploading...</p>}
+            </div>
+          </div>
+
+          {/* Before Images */}
+          <div className="brutal-card p-4">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-3">Before Images</h4>
+            {projectForm.beforeImages.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {projectForm.beforeImages.map((url, i) => (
+                  <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 group">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setProjectForm({ ...projectForm, beforeImages: projectForm.beforeImages.filter((_, j) => j !== i) })} className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <XMarkIcon className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
+              <CloudArrowUpIcon className="h-6 w-6 mx-auto text-gray-400 mb-1" />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Upload before images (max 10)</p>
+              <input ref={beforeImagesInputRef} type="file" accept="image/*" multiple onChange={async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                setUploadingBeforeImages(true);
+                try {
+                  const results = await Promise.all(Array.from(files).map((f) => uploadToCloudinary(f)));
+                  const urls = results.map((r) => r.secure_url);
+                  setProjectForm({ ...projectForm, beforeImages: [...projectForm.beforeImages, ...urls] });
+                  toast.success(`${urls.length} image(s) uploaded`);
+                } catch (err: any) {
+                  toast.error(err.message || 'Upload failed');
+                } finally {
+                  setUploadingBeforeImages(false);
+                  if (beforeImagesInputRef.current) beforeImagesInputRef.current.value = '';
+                }
+              }} disabled={uploadingBeforeImages} className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              {uploadingBeforeImages && <p className="text-xs text-emerald-600 mt-1">Uploading...</p>}
+            </div>
+          </div>
+
+          {/* After Images */}
+          <div className="brutal-card p-4">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-3">After Images</h4>
+            {projectForm.afterImages.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {projectForm.afterImages.map((url, i) => (
+                  <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 group">
+                    <img src={url} alt="" className="w-full h-full object-cover" />
+                    <button type="button" onClick={() => setProjectForm({ ...projectForm, afterImages: projectForm.afterImages.filter((_, j) => j !== i) })} className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <XMarkIcon className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
+              <CloudArrowUpIcon className="h-6 w-6 mx-auto text-gray-400 mb-1" />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Upload after images (max 10)</p>
+              <input ref={afterImagesInputRef} type="file" accept="image/*" multiple onChange={async (e) => {
+                const files = e.target.files;
+                if (!files || files.length === 0) return;
+                setUploadingAfterImages(true);
+                try {
+                  const results = await Promise.all(Array.from(files).map((f) => uploadToCloudinary(f)));
+                  const urls = results.map((r) => r.secure_url);
+                  setProjectForm({ ...projectForm, afterImages: [...projectForm.afterImages, ...urls] });
+                  toast.success(`${urls.length} image(s) uploaded`);
+                } catch (err: any) {
+                  toast.error(err.message || 'Upload failed');
+                } finally {
+                  setUploadingAfterImages(false);
+                  if (afterImagesInputRef.current) afterImagesInputRef.current.value = '';
+                }
+              }} disabled={uploadingAfterImages} className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-md file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" />
+              {uploadingAfterImages && <p className="text-xs text-emerald-600 mt-1">Uploading...</p>}
+            </div>
+          </div>
+
+          {/* Technologies Used */}
           <div>
-            <label className={labelClass}>Location</label>
-            <input className={inputClass} value={projectForm.location} onChange={(e) => setProjectForm({ ...projectForm, location: e.target.value })} />
+            <label className={labelClass}>Technologies Used (comma separated)</label>
+            <textarea className={inputClass} rows={2} value={projectForm.technologiesUsed} onChange={(e) => setProjectForm({ ...projectForm, technologiesUsed: e.target.value })} placeholder="React, Node.js, MongoDB" />
           </div>
+
+          {/* Project Challenges */}
           <div>
-            <label className={labelClass}>Completion Date</label>
-            <input type="date" className={inputClass} value={projectForm.completionDate} onChange={(e) => setProjectForm({ ...projectForm, completionDate: e.target.value })} />
+            <label className={labelClass}>Project Challenges (comma separated)</label>
+            <textarea className={inputClass} rows={2} value={projectForm.projectChallenges} onChange={(e) => setProjectForm({ ...projectForm, projectChallenges: e.target.value })} placeholder="Tight deadline, Complex integrations" />
           </div>
+
+          {/* Project Solutions */}
           <div>
-            <label className={labelClass}>Image URLs (comma separated)</label>
-            <input className={inputClass} value={projectForm.images} onChange={(e) => setProjectForm({ ...projectForm, images: e.target.value })} placeholder="https://..., https://..." />
+            <label className={labelClass}>Project Solutions (comma separated)</label>
+            <textarea className={inputClass} rows={2} value={projectForm.projectSolutions} onChange={(e) => setProjectForm({ ...projectForm, projectSolutions: e.target.value })} placeholder="Agile methodology, Custom API development" />
           </div>
-          <div className="flex items-center gap-2">
-            <input type="checkbox" checked={projectForm.isActive} onChange={(e) => setProjectForm({ ...projectForm, isActive: e.target.checked })} className="rounded border-gray-300 dark:border-gray-600" />
-            <label className="text-sm text-gray-700 dark:text-gray-300">Active</label>
+
+          {/* Project Results */}
+          <div>
+            <label className={labelClass}>Project Results (comma separated)</label>
+            <textarea className={inputClass} rows={2} value={projectForm.projectResults} onChange={(e) => setProjectForm({ ...projectForm, projectResults: e.target.value })} placeholder="Increased efficiency by 30%, Improved user engagement" />
           </div>
-          <div className="flex justify-end gap-3 pt-2">
+
+          {/* Testimonial (simple text input for now, can be a dropdown later) */}
+          <div>
+            <label className={labelClass}>Testimonial (Client Name or ID)</label>
+            <input className={inputClass} value={projectForm.testimonial} onChange={(e) => setProjectForm({ ...projectForm, testimonial: e.target.value })} placeholder="John Doe" />
+          </div>
+
+          {/* SEO Fields */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className={labelClass}>SEO Title</label>
+              <input className={inputClass} value={projectForm.seoTitle} onChange={(e) => setProjectForm({ ...projectForm, seoTitle: e.target.value })} />
+            </div>
+            <div>
+              <label className={labelClass}>SEO Description</label>
+              <input className={inputClass} value={projectForm.seoDescription} onChange={(e) => setProjectForm({ ...projectForm, seoDescription: e.target.value })} />
+            </div>
+          </div>
+
+          {/* Settings row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="flex items-center gap-2 pt-6">
+              <input type="checkbox" checked={projectForm.featured} onChange={(e) => setProjectForm({ ...projectForm, featured: e.target.checked })} className="rounded border-gray-300 dark:border-gray-600 w-4 h-4" />
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Featured</label>
+            </div>
+            <div>
+              <label className={labelClass}>Status</label>
+              <select className={inputClass} value={projectForm.status} onChange={(e) => setProjectForm({ ...projectForm, status: e.target.value as 'draft' | 'published' | 'archived' })}>
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Display Order</label>
+              <input type="number" className={inputClass} value={projectForm.displayOrder} onChange={(e) => setProjectForm({ ...projectForm, displayOrder: parseInt(e.target.value) || 0 })} />
+            </div>
+            <div className="flex items-center gap-2 pt-6">
+              <input type="checkbox" checked={projectForm.isActive} onChange={(e) => setProjectForm({ ...projectForm, isActive: e.target.checked })} className="rounded border-gray-300 dark:border-gray-600 w-4 h-4" />
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Active</label>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
             <button type="button" onClick={() => { setProjectsModalOpen(false); resetProjectForm(); }} className={btnSecondary}>Cancel</button>
-            <button type="submit" className={btnPrimary}>{editingProject ? 'Update' : 'Create'}</button>
+            <button type="submit" className={btnPrimary} disabled={saveProjectMutation.isPending}>
+              {editingProject ? 'Update' : 'Create'}
+            </button>
           </div>
         </form>
       </Modal>

@@ -244,14 +244,32 @@ export interface Service {
 export interface Project {
   _id: string;
   title: string;
-  slug: string;
+  slug?: string;
+  shortDescription: string;
   description: string;
   client: string;
-  location: string;
-  completionDate: string;
-  images: Asset[];
+  projectCategory: string;
+  projectType?: string;
+  capacity?: string;
+  duration?: string;
+  completionDate?: string;
+  featuredImage?: Asset;
+  gallery: Asset[];
+  beforeImages: Asset[];
+  afterImages: Asset[];
+  technologiesUsed: string[];
+  projectChallenges: string[];
+  projectSolutions: string[];
+  projectResults: string[];
+  testimonial?: Testimonial;
+  featured: boolean;
+  status: 'draft' | 'published' | 'archived';
+  displayOrder: number;
+  seoTitle?: string;
+  seoDescription?: string;
   isActive: boolean;
   createdAt: string;
+  updatedAt?: string;
 }
 
 // Homepage types
