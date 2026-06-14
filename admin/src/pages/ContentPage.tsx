@@ -179,12 +179,14 @@ const ContentPage: React.FC = () => {
   const [testimonialForm, setTestimonialForm] = useState({
     clientName: '',
     clientTitle: '',
-    company: '',
-    content: '',
+    testimonialText: '',
     rating: 5,
-    avatar: '',
-    isActive: true,
+    image: null as { secure_url: string; public_id: string } | null,
+    featured: false,
+    status: 'pending' as 'pending' | 'approved' | 'rejected',
   });
+  const [uploadingTestimonialImage, setUploadingTestimonialImage] = useState(false);
+  const testimonialImageInputRef = useRef<HTMLInputElement>(null);
 
   // ---------- Partner state ----------
   const [partnersModalOpen, setPartnersModalOpen] = useState(false);
@@ -624,9 +626,23 @@ const ContentPage: React.FC = () => {
 
   const handleTestimonialSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const payload: Record<string, any> = {
+      clientName: testimonialForm.clientName,
+      clientTitle: testimonialForm.clientTitle || undefined,
+      testimonialText: testimonialForm.testimonialText,
+      rating: testimonialForm.rating,
+      featured: testimonialForm.featured,
+      status: testimonialForm.status,
+    };
+    if (testimonialForm.image) {
+      payload.image = {
+        secure_url: testimonialForm.image.secure_url,
+        public_id: testimonialForm.image.public_id,
+      };
+    }
     saveTestimonialMutation.mutate({
       id: editingTestimonial?._id,
-      data: testimonialForm,
+      data: payload,
     });
   };
 
@@ -635,11 +651,11 @@ const ContentPage: React.FC = () => {
     setTestimonialForm({
       clientName: '',
       clientTitle: '',
-      company: '',
-      content: '',
+      testimonialText: '',
       rating: 5,
-      avatar: '',
-      isActive: true,
+      image: null,
+      featured: false,
+      status: 'pending',
     });
   };
 
@@ -649,11 +665,11 @@ const ContentPage: React.FC = () => {
       setTestimonialForm({
         clientName: testim.clientName,
         clientTitle: testim.clientTitle || '',
-        company: testim.company || '',
-        content: testim.content,
+        testimonialText: testim.testimonialText,
         rating: testim.rating,
-        avatar: testim.avatar?.secureUrl || '',
-        isActive: testim.isActive,
+        image: testim.image ? { secure_url: testim.image.secureUrl, public_id: testim.image.publicId } : null,
+        featured: testim.featured,
+        status: testim.status,
       });
     } else {
       resetTestimonialForm();
@@ -852,17 +868,21 @@ const ContentPage: React.FC = () => {
   const testimColumns: Column<Testimonial>[] = [
     { key: 'clientName', header: 'Client', render: (t) => (
       <div className="flex items-center gap-2">
-        {t.avatar?.secureUrl && <img src={t.avatar.secureUrl} alt="" className="h-8 w-8 rounded-full object-cover" />}
+        {t.image?.secureUrl && <img src={t.image.secureUrl} alt="" className="h-8 w-8 rounded-full object-cover" />}
         <span className="font-medium">{t.clientName}</span>
       </div>
     )},
-    { key: 'company', header: 'Company' },
+    { key: 'clientTitle', header: 'Title' },
     { key: 'rating', header: 'Rating', render: (t) => <RatingStars rating={t.rating} /> },
-    { key: 'isActive', header: 'Status', render: (t) => (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${t.isActive ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'}`}>
-        {t.isActive ? 'Active' : 'Inactive'}
-      </span>
-    )},
+    { key: 'status', header: 'Status', render: (t) => {
+      const colors: Record<string, string> = {
+        approved: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+        pending: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300',
+        rejected: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+      };
+      return <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[t.status] || colors.pending}`}>{t.status}</span>;
+    }},
+    { key: 'featured', header: 'Featured', render: (t) => t.featured ? <span className="text-green-600 font-medium">Yes</span> : <span className="text-gray-400">No</span> },
   ];
 
   const partnerColumns: Column<Partner>[] = [
@@ -1654,9 +1674,9 @@ const ContentPage: React.FC = () => {
     onOpenCreate: () => openTestimonialModal(),
     modal: (
       <Modal isOpen={testimonialsModalOpen} onClose={() => { setTestimonialsModalOpen(false); resetTestimonialForm(); }} title={editingTestimonial ? 'Edit Testimonial' : 'New Testimonial'} size="md">
-        <form onSubmit={handleTestimonialSubmit} className="space-y-4">
+        <form onSubmit={handleTestimonialSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
           <div>
-            <label className={labelClass}>Client Name</label>
+            <label className={labelClass}>Client Name *</label>
             <input className={inputClass} value={testimonialForm.clientName} onChange={(e) => setTestimonialForm({ ...testimonialForm, clientName: e.target.value })} required />
           </div>
           <div>
@@ -1664,28 +1684,73 @@ const ContentPage: React.FC = () => {
             <input className={inputClass} value={testimonialForm.clientTitle} onChange={(e) => setTestimonialForm({ ...testimonialForm, clientTitle: e.target.value })} />
           </div>
           <div>
-            <label className={labelClass}>Company</label>
-            <input className={inputClass} value={testimonialForm.company} onChange={(e) => setTestimonialForm({ ...testimonialForm, company: e.target.value })} />
-          </div>
-          <div>
-            <label className={labelClass}>Content</label>
-            <textarea className={inputClass} rows={4} value={testimonialForm.content} onChange={(e) => setTestimonialForm({ ...testimonialForm, content: e.target.value })} required />
+            <label className={labelClass}>Testimonial Text *</label>
+            <textarea className={inputClass} rows={4} value={testimonialForm.testimonialText} onChange={(e) => setTestimonialForm({ ...testimonialForm, testimonialText: e.target.value })} required />
           </div>
           <div>
             <label className={labelClass}>Rating (1-5)</label>
             <input type="number" min={1} max={5} className={inputClass} value={testimonialForm.rating} onChange={(e) => setTestimonialForm({ ...testimonialForm, rating: parseInt(e.target.value) || 5 })} />
           </div>
-          <div>
-            <label className={labelClass}>Avatar URL</label>
-            <input className={inputClass} value={testimonialForm.avatar} onChange={(e) => setTestimonialForm({ ...testimonialForm, avatar: e.target.value })} placeholder="https://..." />
+
+          {/* Image Upload Section */}
+          <div className="space-y-2">
+            <label className={labelClass}>Client Image</label>
+            {testimonialForm.image && (
+              <div className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 mb-2 group">
+                <img src={testimonialForm.image.secure_url} alt="Client" className="w-full h-full object-cover" />
+                <button type="button" onClick={() => setTestimonialForm({ ...testimonialForm, image: null })} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <XMarkIcon className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
+              <CloudArrowUpIcon className="h-6 w-6 mx-auto text-gray-400 mb-1" />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Upload testimonial image</p>
+              <input
+                ref={testimonialImageInputRef}
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploadingTestimonialImage(true);
+                  try {
+                    const result = await uploadToCloudinary(file);
+                    setTestimonialForm({ ...testimonialForm, image: { secure_url: result.secure_url, public_id: result.public_id } });
+                    toast.success('Image uploaded');
+                  } catch (err: any) {
+                    toast.error(err.message || 'Image upload failed');
+                  } finally {
+                    setUploadingTestimonialImage(false);
+                    if (testimonialImageInputRef.current) testimonialImageInputRef.current.value = '';
+                  }
+                }}
+                disabled={uploadingTestimonialImage}
+                className="block w-full text-xs text-gray-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
+              />
+              {uploadingTestimonialImage && <p className="text-xs text-indigo-600 mt-1">Uploading to Cloudinary...</p>}
+            </div>
           </div>
+
           <div className="flex items-center gap-2">
-            <input type="checkbox" checked={testimonialForm.isActive} onChange={(e) => setTestimonialForm({ ...testimonialForm, isActive: e.target.checked })} className="rounded border-gray-300 dark:border-gray-600" />
-            <label className="text-sm text-gray-700 dark:text-gray-300">Active</label>
+            <input type="checkbox" checked={testimonialForm.featured} onChange={(e) => setTestimonialForm({ ...testimonialForm, featured: e.target.checked })} className="rounded border-gray-300 dark:border-gray-600 w-4 h-4" />
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Featured</label>
           </div>
-          <div className="flex justify-end gap-3 pt-2">
+
+          <div>
+            <label className={labelClass}>Status</label>
+            <select className={inputClass} value={testimonialForm.status} onChange={(e) => setTestimonialForm({ ...testimonialForm, status: e.target.value as 'pending' | 'approved' | 'rejected' })}>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 pt-2 border-t border-gray-200 dark:border-gray-700">
             <button type="button" onClick={() => { setTestimonialsModalOpen(false); resetTestimonialForm(); }} className={btnSecondary}>Cancel</button>
-            <button type="submit" className={btnPrimary}>{editingTestimonial ? 'Update' : 'Create'}</button>
+            <button type="submit" className={btnPrimary} disabled={saveTestimonialMutation.isPending}>
+              {saveTestimonialMutation.isPending ? 'Saving...' : editingTestimonial ? 'Update' : 'Create'}
+            </button>
           </div>
         </form>
       </Modal>

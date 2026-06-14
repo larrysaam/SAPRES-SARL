@@ -208,12 +208,13 @@ export interface Testimonial {
   _id: string;
   clientName: string;
   clientTitle?: string;
-  company?: string;
-  content: string;
+  testimonialText: string;
   rating: number;
-  avatar?: Asset;
-  isActive: boolean;
+  image?: Asset;
+  featured: boolean;
+  status: 'pending' | 'approved' | 'rejected';
   createdAt: string;
+  updatedAt: string;
 }
 
 // Partner types
