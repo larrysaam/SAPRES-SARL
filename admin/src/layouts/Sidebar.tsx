@@ -17,6 +17,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
+import logo from '../assets/logo.jpg'; // Adjust the path to your logo image  
 
 const Sidebar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -44,8 +45,8 @@ const Sidebar: React.FC = () => {
       {/* Logo */}
       <div className="flex items-center justify-between px-5 py-5 border-b-2 border-gray-900 dark:border-gray-200">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-600 rounded-lg border-2 border-gray-900 dark:border-gray-200 flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]">
-            <span className="text-white font-black text-lg">S</span>
+          <div className="w-10 h-10  rounded-lg border-2  dark:border-gray-200 flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]">
+            <img src={logo} alt="SAPRES Logo" />
           </div>
           <div>
             <h1 className="font-black text-gray-900 dark:text-white text-lg leading-tight">SAPRES</h1>
