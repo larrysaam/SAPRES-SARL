@@ -195,8 +195,12 @@ export interface Blog {
   excerpt: string;
   content: string;
   coverImage: Asset;
-  author: string;
+  author: string | User;
   tags: string[];
+  category: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  status: 'draft' | 'published';
   isPublished: boolean;
   publishedAt?: string;
   createdAt: string;

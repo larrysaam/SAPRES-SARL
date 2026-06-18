@@ -4,14 +4,13 @@ import {
   PlusIcon,
   PencilSquareIcon,
   TrashIcon,
-  EyeIcon,
   XMarkIcon,
   CloudArrowUpIcon,
 } from '@heroicons/react/24/outline';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import Modal from '../components/Modal';
-import Skeleton, { CardSkeleton } from '../components/Skeleton';
+import { CardSkeleton } from '../components/Skeleton';
 import toast from '../components/Toast';
 import blogService from '../services/blogService';
 import type {
@@ -56,15 +55,6 @@ const RatingStars: React.FC<{ rating: number }> = ({ rating }) => (
     ))}
   </div>
 );
-
-// ------------------------------------------------------------------
-// Stat item
-// ------------------------------------------------------------------
-interface StatItem {
-  label: string;
-  value: string;
-  icon: string;
-}
 
 // ------------------------------------------------------------------
 // ContentPage Component
@@ -322,13 +312,17 @@ const ContentPage: React.FC = () => {
   const useGenericMutation = (endpoint: string, queryKey: string, onSuccess?: () => void) =>
     useMutation({
       mutationFn: async (vars: { id?: string; data: any }) => {
+        
         const { default: apiClient } = await import('../services/apiClient');
+        console.log(`Calling API for ${endpoint} with vars:`, vars); // Log the mutation call
         try {
           let res;
           if (vars.id) {
             res = await apiClient.put(`/${endpoint}/${vars.id}`, vars.data);
           } else {
+            console.log("BEFORE RES")
             res = await apiClient.post(`/${endpoint}`, vars.data);
+            console.log(`Created new ${endpoint} with ID:`, res.data?._id || res.data?.id || 'unknown'); // Log new ID
           }
           console.log(`API call to /${endpoint} successful:`, res); // Log success response
           return res.data;
@@ -396,7 +390,7 @@ const ContentPage: React.FC = () => {
         excerpt: blog.excerpt,
         content: blog.content,
         coverImage: blog.coverImage?.secureUrl || '',
-        author: blog.author,
+        author: typeof blog.author === 'string' ? blog.author : '',
         tags: blog.tags.join(', '),
         category: blog.category || 'Company News',
         seoTitle: blog.seoTitle || blog.title,
@@ -420,7 +414,7 @@ const ContentPage: React.FC = () => {
       seoTitle: blogForm.seoTitle || blogForm.title,
       seoDescription: blogForm.seoDescription || blogForm.excerpt,
       status: blogForm.status,
-      featuredImage: blogForm.coverImage ? { secure_url: blogForm.coverImage, public_id: 'manual', format: 'jpg', bytes: 0 } : undefined,
+      coverImage: blogForm.coverImage ? { secureUrl: blogForm.coverImage, publicId: 'manual', format: 'jpg', bytes: 0 } : undefined,
       author: blogForm.author,
     };
     if (editingBlog) {
@@ -504,31 +498,39 @@ const ContentPage: React.FC = () => {
 
   const handleProjectSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('handleProjectSubmit called'); // Added log
-    const payload: Record<string, any> = {
-      title: projectForm.title,
-      shortDescription: projectForm.shortDescription,
-      description: projectForm.description,
-      projectCategory: projectForm.projectCategory,
-      projectType: projectForm.projectType,
-      capacity: projectForm.capacity,
-      duration: projectForm.duration,
-      completionDate: projectForm.completionDate,
-      featured: projectForm.featured,
-      status: projectForm.status,
-      displayOrder: projectForm.displayOrder,
-      seoTitle: projectForm.seoTitle,
-      seoDescription: projectForm.seoDescription,
-    };
+    // Build payload, stripping empty strings so Joi validation doesn't reject them
+    const payload: Record<string, any> = {};
 
-    // Handle client object
-    if (projectForm.client) {
-      payload.client = { name: projectForm.client };
+    // Required fields — always include
+    payload.title = projectForm.title;
+    payload.shortDescription = projectForm.shortDescription;
+    payload.description = projectForm.description;
+    payload.projectCategory = projectForm.projectCategory;
+
+    // Optional string fields — only include when non-empty
+    if (projectForm.projectType) payload.projectType = projectForm.projectType;
+    if (projectForm.capacity) payload.capacity = projectForm.capacity;
+    if (projectForm.duration) payload.duration = projectForm.duration;
+    // completionDate: only include if it has a value (Joi.date() rejects empty string)
+    if (projectForm.completionDate) {
+      payload.completionDate = projectForm.completionDate;
+    }
+    if (projectForm.seoTitle) payload.seoTitle = projectForm.seoTitle;
+    if (projectForm.seoDescription) payload.seoDescription = projectForm.seoDescription;
+
+    // Boolean / number fields
+    payload.featured = projectForm.featured;
+    payload.status = projectForm.status;
+    payload.displayOrder = projectForm.displayOrder;
+
+    // Handle client object — only send when client name is provided
+    if (projectForm.client?.trim()) {
+      payload.client = { name: projectForm.client.trim() };
     }
 
-    // Handle testimonial object
-    if (projectForm.testimonial) {
-      payload.testimonial = { clientName: projectForm.testimonial };
+    // Handle testimonial object — only send when client name is provided
+    if (projectForm.testimonial?.trim()) {
+      payload.testimonial = { clientName: projectForm.testimonial.trim() };
     }
 
     // Convert comma-separated strings to arrays
@@ -545,11 +547,7 @@ const ContentPage: React.FC = () => {
       payload.projectResults = projectForm.projectResults.split(',').map((s) => s.trim()).filter(Boolean);
     }
 
-    // Image fields are handled by separate upload routes, so they should not be part of the initial project creation payload.
-    // The frontend form state still holds the URLs, but they are not sent in this initial payload.
-    // The backend will link images after they are uploaded via their specific routes.
-
-    console.log('Project payload:', payload); // Added log
+    console.log("PAYLOAD : ", payload)
 
     saveProjectMutation.mutate({
       id: editingProject?._id,
@@ -1062,7 +1060,7 @@ const ContentPage: React.FC = () => {
         columns={blogColumns}
         data={blogData?.data || []}
         loading={blogLoading}
-        error={blogError as string}
+        error={blogError?.message || ''}
         page={blogPage}
         totalPages={blogData?.totalPages || 1}
         onPageChange={setBlogPage}
@@ -1405,21 +1403,21 @@ const ContentPage: React.FC = () => {
           </div>
           <div>
             <label className={labelClass}>Short Description *</label>
-            <textarea className={inputClass} rows={2} value={projectForm.shortDescription} onChange={(e) => setProjectForm({ ...projectForm, shortDescription: e.target.value })} required placeholder="Brief overview of the project (10-500 chars)" />
+            <textarea className={inputClass} rows={2} value={projectForm.shortDescription} onChange={(e) => setProjectForm({ ...projectForm, shortDescription: e.target.value })} required placeholder="Brief overview of the project (10-500 chars)" minLength={10} />
           </div>
           <div>
             <label className={labelClass}>Full Description *</label>
-            <textarea className={inputClass} rows={4} value={projectForm.description} onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })} required placeholder="Detailed project description (min 20 chars)" />
+            <textarea className={inputClass} rows={4} value={projectForm.description} onChange={(e) => setProjectForm({ ...projectForm, description: e.target.value })} required placeholder="Detailed project description (min 20 chars)" minLength={20} />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className={labelClass}>Client *</label>
-              <input className={inputClass} value={projectForm.client} onChange={(e) => setProjectForm({ ...projectForm, client: e.target.value })} required />
+              <label className={labelClass}>Client</label>
+              <input className={inputClass} value={projectForm.client} onChange={(e) => setProjectForm({ ...projectForm, client: e.target.value })} />
             </div>
             <div>
               <label className={labelClass}>Project Category *</label>
-              <input className={inputClass} value={projectForm.projectCategory} onChange={(e) => setProjectForm({ ...projectForm, projectCategory: e.target.value })} required />
+              <input className={inputClass} value={projectForm.projectCategory} onChange={(e) => setProjectForm({ ...projectForm, projectCategory: e.target.value })} required minLength={3} />
             </div>
             <div>
               <label className={labelClass}>Project Type</label>

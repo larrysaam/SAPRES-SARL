@@ -5,10 +5,10 @@ import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import Modal from '../components/Modal';
 import toast from '../components/Toast';
-import type { Notification, NotificationTemplate } from '../types';
+import type { NotificationTemplate } from '../types';
 
 // Mock data - in production, connect to real API endpoints
-const mockNotifications: Notification[] = [];
+// const mockNotifications: Notification[] = [];
 const mockTemplates: NotificationTemplate[] = [
   { _id: '1', name: 'Order Confirmation', type: 'email', subject: 'Your order has been confirmed', content: 'Dear customer, your order #{{orderNumber}} has been confirmed.', variables: ['orderNumber'], isActive: true, createdAt: '2024-01-01' },
   { _id: '2', name: 'Application Received', type: 'email', subject: 'Application Received', content: 'Dear {{firstName}}, we have received your application for {{jobTitle}}.', variables: ['firstName', 'jobTitle'], isActive: true, createdAt: '2024-01-01' },

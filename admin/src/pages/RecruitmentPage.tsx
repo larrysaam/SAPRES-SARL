@@ -45,12 +45,6 @@ const RecruitmentPage: React.FC = () => {
     onError: () => toast.error('Failed to update application'),
   });
 
-  const deleteAppMutation = useMutation({
-    mutationFn: (id: string) => applicationService.deleteApplication(id),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['applications'] }); toast.success('Application deleted'); },
-    onError: () => toast.error('Failed to delete application'),
-  });
-
   const createJobMutation = useMutation({
     mutationFn: (data: Partial<Job>) => jobService.createJob(data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['jobs'] }); toast.success('Job created'); setIsJobModalOpen(false); resetJobForm(); },

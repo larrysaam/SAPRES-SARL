@@ -7,7 +7,6 @@ import {
   XMarkIcon,
   CloudArrowUpIcon,
   DocumentArrowUpIcon,
-  PhotoIcon,
 } from '@heroicons/react/24/outline';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
@@ -317,8 +316,8 @@ const ProductsPage: React.FC = () => {
     </form>
   );
 
-  const handleCreateSubmit = (e: React.FormEvent) => { createMutation.mutate(buildPayload()); };
-  const handleEditSubmit = (e: React.FormEvent) => { if (selectedProduct?._id) updateMutation.mutate({ id: selectedProduct._id, data: buildPayload() }); };
+  const handleCreateSubmit = (_e: React.FormEvent) => { createMutation.mutate(buildPayload()); };
+  const handleEditSubmit = (_e: React.FormEvent) => { if (selectedProduct?._id) updateMutation.mutate({ id: selectedProduct._id, data: buildPayload() }); };
 
   const columns = [
     { key: 'name', header: 'Name', render: (p: Product) => <span className="font-medium">{p.name}</span> },

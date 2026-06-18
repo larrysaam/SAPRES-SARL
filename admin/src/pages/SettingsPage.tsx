@@ -38,7 +38,7 @@ const SettingsPage: React.FC = () => {
   });
 
   const [paymentSettings, setPaymentSettings] = useState({
-    mtnMomo: { enabled: false, merchantCode: '' },
+    mtnMoney: { enabled: false, merchantCode: '' },
     orangeMoney: { enabled: false, merchantCode: '' },
     whatsapp: { enabled: false, number: '' },
   });
@@ -60,7 +60,7 @@ const SettingsPage: React.FC = () => {
       // Company Info
       setCompanyInfo({
         name: settings.company?.name || '',
-        logo: settings.company?.logo || '',
+        logo: (typeof settings.company?.logo === 'string' ? settings.company?.logo : (settings.company?.logo as any)?.secureUrl) || '',
         email: settings.company?.email || '',
         phone: settings.company?.phone || '',
         address: settings.company?.address || '',
@@ -78,31 +78,31 @@ const SettingsPage: React.FC = () => {
 
       // SEO
       setSeo({
-        metaTitle: settings.seo?.metaTitle || '',
-        metaDescription: settings.seo?.metaDescription || '',
-        keywords: settings.seo?.keywords || '',
+        metaTitle: settings.seo?.title || '',
+        metaDescription: settings.seo?.description || '',
+        keywords: (Array.isArray(settings.seo?.keywords) ? settings.seo.keywords.join(', ') : settings.seo?.keywords) || '',
         googleAnalyticsId: settings.seo?.googleAnalyticsId || '',
       });
 
       // Payment
       setPaymentSettings({
-        mtnMomo: { enabled: settings.payment?.mtnMomo?.enabled || false, merchantCode: settings.payment?.mtnMomo?.merchantCode || '' },
-        orangeMoney: { enabled: settings.payment?.orangeMoney?.enabled || false, merchantCode: settings.payment?.orangeMoney?.merchantCode || '' },
-        whatsapp: { enabled: settings.payment?.whatsapp?.enabled || false, number: settings.payment?.whatsapp?.number || '' },
+        mtnMoney: { enabled: settings.payments?.mtnMoney?.enabled || false, merchantCode: settings.payments?.mtnMoney?.merchantCode || '' },
+        orangeMoney: { enabled: settings.payments?.orangeMoney?.enabled || false, merchantCode: settings.payments?.orangeMoney?.merchantCode || '' },
+        whatsapp: { enabled: settings.payments?.whatsapp?.enabled || false, number: settings.payments?.whatsapp?.number || '' },
       });
 
       // Recruitment
       setRecruitment({
-        notifyEmail: settings.recruitment?.notifyEmail || false,
-        notifySms: settings.recruitment?.notifySms || false,
-        notifyWhatsapp: settings.recruitment?.notifyWhatsapp || false,
+        notifyEmail: settings.recruitment?.emailNotifications || false,
+        notifySms: settings.recruitment?.smsNotifications || false,
+        notifyWhatsapp: settings.recruitment?.whatsappNotifications || false,
         autoReplyEmail: settings.recruitment?.autoReplyEmail || '',
       });
 
       // Appearance
       setAppearance({
         primaryColor: settings.appearance?.primaryColor || '#4F46E5',
-        faviconUrl: settings.appearance?.faviconUrl || '',
+        faviconUrl: (typeof settings.appearance?.favicon === 'string' ? settings.appearance?.favicon : (settings.appearance?.favicon as any)?.secureUrl) || '',
       });
     }
   }, [settings]);
@@ -121,9 +121,7 @@ const SettingsPage: React.FC = () => {
   const labelClass = 'block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1';
   const btnPrimary =
     'px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed';
-  const btnSecondary =
-    'px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-300 dark:hover:bg-gray-500 transition-colors';
-
+  
   const renderSection = (
     title: string,
     description: string,
@@ -168,7 +166,14 @@ const SettingsPage: React.FC = () => {
 
   const handleSaveCompany = () => {
     updateSettingsMutation.mutate({
-      company: companyInfo,
+      company: {
+        name: companyInfo.name,
+        logo: companyInfo.logo ? { secureUrl: companyInfo.logo, publicId: '', format: '', bytes: 0 } : undefined,
+        email: companyInfo.email,
+        phone: companyInfo.phone,
+        address: companyInfo.address,
+        website: companyInfo.website,
+      },
     });
   };
 
@@ -181,27 +186,37 @@ const SettingsPage: React.FC = () => {
   const handleSaveSeo = () => {
     updateSettingsMutation.mutate({
       seo: {
-        ...seo,
-        keywords: seo.keywords.split(',').map((k) => k.trim()).filter(Boolean).join(', '),
+        title: seo.metaTitle,
+        description: seo.metaDescription,
+        keywords: seo.keywords.split(',').map((k) => k.trim()).filter(Boolean),
+        googleAnalyticsId: seo.googleAnalyticsId,
       },
     });
   };
 
   const handleSavePayment = () => {
     updateSettingsMutation.mutate({
-      payment: paymentSettings,
+      payments: paymentSettings,
     });
   };
 
   const handleSaveRecruitment = () => {
     updateSettingsMutation.mutate({
-      recruitment: recruitment,
+      recruitment: {
+        emailNotifications: recruitment.notifyEmail,
+        smsNotifications: recruitment.notifySms,
+        whatsappNotifications: recruitment.notifyWhatsapp,
+        autoReplyEmail: recruitment.autoReplyEmail,
+      },
     });
   };
 
   const handleSaveAppearance = () => {
     updateSettingsMutation.mutate({
-      appearance: appearance,
+      appearance: {
+        primaryColor: appearance.primaryColor,
+        favicon: appearance.faviconUrl ? { secureUrl: appearance.faviconUrl, publicId: '', format: '', bytes: 0 } : undefined,
+      },
     });
   };
 
@@ -303,17 +318,17 @@ const SettingsPage: React.FC = () => {
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={paymentSettings.mtnMomo.enabled}
-                    onChange={(e) => setPaymentSettings({ ...paymentSettings, mtnMomo: { ...paymentSettings.mtnMomo, enabled: e.target.checked } })}
+                    checked={paymentSettings.mtnMoney.enabled}
+                    onChange={(e) => setPaymentSettings({ ...paymentSettings, mtnMoney: { ...paymentSettings.mtnMoney, enabled: e.target.checked } })}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-indigo-500 dark:peer-focus:ring-indigo-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600" />
                 </label>
               </div>
-              {paymentSettings.mtnMomo.enabled && (
+              {paymentSettings.mtnMoney.enabled && (
                 <div>
                   <label className={labelClass}>Merchant Code</label>
-                  <input className={inputClass} value={paymentSettings.mtnMomo.merchantCode} onChange={(e) => setPaymentSettings({ ...paymentSettings, mtnMomo: { ...paymentSettings.mtnMomo, merchantCode: e.target.value } })} />
+                  <input className={inputClass} value={paymentSettings.mtnMoney.merchantCode} onChange={(e) => setPaymentSettings({ ...paymentSettings, mtnMoney: { ...paymentSettings.mtnMoney, merchantCode: e.target.value } })} />
                 </div>
               )}
             </div>

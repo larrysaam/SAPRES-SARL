@@ -11,7 +11,6 @@ import {
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import Modal from '../components/Modal';
-import { CardSkeleton } from '../components/Skeleton';
 import toast from '../components/Toast';
 import productService from '../services/productService';
 import type { Product } from '../types';
@@ -177,7 +176,6 @@ const InventoryPage: React.FC = () => {
     )},
   ];
 
-  const hasError = Boolean(productsError);
 
   return (
     <div className="space-y-6">

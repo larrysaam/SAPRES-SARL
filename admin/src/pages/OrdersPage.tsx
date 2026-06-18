@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   EyeIcon,
-  ChevronDownIcon,
   ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 import DataTable from '../components/DataTable';
@@ -12,7 +11,6 @@ import orderService from '../services/orderService';
 import type { Order } from '../types';
 
 const ORDER_STATUSES = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled'];
-const PAYMENT_STATUSES = ['pending', 'paid', 'failed', 'refunded'];
 
 const OrdersPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -88,8 +86,7 @@ const OrdersPage: React.FC = () => {
       key: 'customer',
       header: 'Customer',
       render: (o: Order) => {
-        const customer = o.customer as any;
-        return <span>{customer?.name || customer?.email || 'N/A'}</span>;
+        return <span>{o.customerName || o.customerEmail || 'N/A'}</span>;
       },
     },
     {
@@ -256,15 +253,15 @@ const OrdersPage: React.FC = () => {
             )}
 
             {/* Timeline */}
-            {selectedOrder.timeline && selectedOrder.timeline.length > 0 && (
+            {(selectedOrder as any).timeline && (selectedOrder as any).timeline.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3">Order Timeline</h3>
                 <div className="space-y-3">
-                  {selectedOrder.timeline.map((entry: any, idx: number) => (
+                  {(selectedOrder as any).timeline.map((entry: any, idx: number) => (
                     <div key={idx} className="flex items-start gap-3">
                       <div className="flex flex-col items-center">
                         <div className={`h-3 w-3 rounded-full ${entry.status === 'delivered' || entry.status === 'paid' ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
-                        {idx < selectedOrder.timeline.length - 1 && <div className="w-0.5 h-8 bg-gray-200 dark:bg-gray-700" />}
+                        {idx < (selectedOrder as any).timeline.length - 1 && <div className="w-0.5 h-8 bg-gray-200 dark:bg-gray-700" />}
                       </div>
                       <div className="pb-3">
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
@@ -293,10 +290,10 @@ const OrdersPage: React.FC = () => {
                 <span className={`px-2 py-0.5 text-xs font-medium rounded-full inline-block w-fit ${paymentStatusColors[selectedOrder.paymentStatus || 'pending']}`}>
                   {selectedOrder.paymentStatus || 'pending'}
                 </span>
-                {selectedOrder.paymentRef && (
+                {(selectedOrder as any).paymentRef && (
                   <>
                     <span className="text-gray-500 dark:text-gray-400">Reference:</span>
-                    <span className="text-gray-900 dark:text-gray-100">{selectedOrder.paymentRef}</span>
+                    <span className="text-gray-900 dark:text-gray-100">{(selectedOrder as any).paymentRef}</span>
                   </>
                 )}
                 <span className="text-gray-500 dark:text-gray-400">Total:</span>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 import { CardSkeleton } from '../components/Skeleton';
@@ -19,7 +19,7 @@ const AnalyticsPage: React.FC = () => {
     queryFn: () => productService.getProducts({ limit: 100 }),
   });
 
-  const { data: ordersData } = useQuery({
+  const {  } = useQuery({
     queryKey: ['orders', 'all'],
     queryFn: () => orderService.getOrders({ limit: 100 }),
   });
