@@ -37,8 +37,8 @@ const getSingleProject = async (req, res, next) => {
 const createProject = async (req, res, next) => {
   try {
     console.log("Request body:", req.body);
-    const userId = req.user._id; // Assuming user ID is available from auth middleware
-    const response = await projectService.createProject(req.body, userId);
+   
+    const response = await projectService.createProject(req.body);
     res.status(response.statusCode).json(response);
   } catch (error) {
     next(error);

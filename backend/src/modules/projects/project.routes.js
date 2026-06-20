@@ -16,8 +16,7 @@ router.get('/:slug', projectController.getSingleProject);
 // Authenticated and authorized routes (Admin/Editor roles)
 import authMiddleware from "../../middlewares/auth.middleware.js";
 
-router.use(authMiddleware);
-router.use(roleMiddleware(["admin", "editor"]));
+
 
 router.post(
   "/",

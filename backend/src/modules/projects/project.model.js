@@ -111,8 +111,8 @@ const projectSchema = new mongoose.Schema(
       trim: true,
     },
     createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      type: String,
+      trim: true,
     },
     isDeleted: {
       type: Boolean,

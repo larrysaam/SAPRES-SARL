@@ -16,6 +16,7 @@ const createTestimonialController = async (req, res, next) => {
 };
 
 const getTestimonialsController = async (req, res, next) => {
+  console.log('Query parameters:', req.query);
   try {
     const filter = {};
     const options = {

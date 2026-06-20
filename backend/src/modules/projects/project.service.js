@@ -60,10 +60,10 @@ const getSingleProject = async (slug) => {
 };
 
 // Create a new project
-const createProject = async (projectData, userId) => {
+const createProject = async (projectData) => {
   const newProject = new Project({
     ...projectData,
-    createdBy: userId,
+    createdBy: "admin",
   });
   await newProject.save();
   return new ApiResponse(201, {

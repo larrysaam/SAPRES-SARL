@@ -14,9 +14,9 @@ router.post(
 
 // Authenticated and authorized routes (Admin/Editor roles)
 // All routes below this middleware will require authentication
-router.use(authMiddleware);
+router.use(authMiddleware());
 // All routes below this middleware will require the user to have 'admin' or 'editor' role
-router.use(roleMiddleware(['admin', 'editor']));
+router.use(roleMiddleware(['super_admin', 'content_admin', 'sales_admin', 'hr_admin']));
 
 // Route to get all contact requests
 router.get('/', contactController.getAllContacts);
