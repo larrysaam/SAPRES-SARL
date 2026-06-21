@@ -3,13 +3,13 @@ import Joi from 'joi';
 const imageSchema = Joi.object({
   publicId: Joi.string().required(),
   secureUrl: Joi.string().uri().required(),
-});
+}).unknown(true);
 
 const clientSchema = Joi.object({
   name: Joi.string().required(),
   industry: Joi.string().optional().allow(''),
   location: Joi.string().optional().allow(''),
-});
+}).unknown(true);
 
 const testimonialSchema = Joi.object({
   clientName: Joi.string().optional().allow(''),
@@ -27,6 +27,10 @@ const createProjectSchema = Joi.object({
   capacity: Joi.string().optional().allow(''),
   duration: Joi.string().optional().allow(''),
   completionDate: Joi.date().optional(),
+  featuredImage: imageSchema.optional(),
+  gallery: Joi.array().items(imageSchema).optional(),
+  beforeImages: Joi.array().items(imageSchema).optional(),
+  afterImages: Joi.array().items(imageSchema).optional(),
   technologiesUsed: Joi.array().items(Joi.string()).optional(),
   projectChallenges: Joi.array().items(Joi.string()).optional(),
   projectSolutions: Joi.array().items(Joi.string()).optional(),
@@ -38,7 +42,7 @@ const createProjectSchema = Joi.object({
   seoTitle: Joi.string().optional().allow(''),
   seoDescription: Joi.string().optional().allow(''),
   // createdBy will be set by the server
-});
+}).unknown(true);
 
 const updateProjectSchema = Joi.object({
   title: Joi.string().min(3).max(255).optional(),
@@ -50,6 +54,10 @@ const updateProjectSchema = Joi.object({
   capacity: Joi.string().optional().allow(''),
   duration: Joi.string().optional().allow(''),
   completionDate: Joi.date().optional(),
+  featuredImage: imageSchema.optional(),
+  gallery: Joi.array().items(imageSchema).optional(),
+  beforeImages: Joi.array().items(imageSchema).optional(),
+  afterImages: Joi.array().items(imageSchema).optional(),
   technologiesUsed: Joi.array().items(Joi.string()).optional(),
   projectChallenges: Joi.array().items(Joi.string()).optional(),
   projectSolutions: Joi.array().items(Joi.string()).optional(),
@@ -60,7 +68,7 @@ const updateProjectSchema = Joi.object({
   displayOrder: Joi.number().integer().min(0).optional(),
   seoTitle: Joi.string().optional().allow(''),
   seoDescription: Joi.string().optional().allow(''),
-});
+}).unknown(true);
 
 const reorderProjectsSchema = Joi.object({
   projects: Joi.array().items(

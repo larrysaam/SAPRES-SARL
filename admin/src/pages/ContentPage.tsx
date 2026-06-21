@@ -33,9 +33,9 @@ const TABS: { key: Tab; label: string }[] = [
   { key: 'homepage', label: 'Homepage' },
   { key: 'blog', label: 'Blog' },
   { key: 'services', label: 'Services' },
-  { key: 'projects', label: 'Projects' },
+  // { key: 'projects', label: 'Projects' },
   { key: 'testimonials', label: 'Testimonials' },
-  { key: 'partners', label: 'Partners' },
+  // { key: 'partners', label: 'Partners' },
 ];
 
 // ------------------------------------------------------------------
@@ -68,29 +68,36 @@ const ContentPage: React.FC = () => {
   const [blogModalOpen, setBlogModalOpen] = useState(false);
   const [editingBlog, setEditingBlog] = useState<Blog | null>(null);
   const [blogDeleteId, setBlogDeleteId] = useState<string | null>(null);
+  const [uploadingBlogCoverImage, setUploadingBlogCoverImage] = useState(false);
+  const blogCoverImageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingBlogGallery, setUploadingBlogGallery] = useState(false);
+  const blogGalleryInputRef = useRef<HTMLInputElement>(null);
   const [blogForm, setBlogForm] = useState({
     title: '',
     excerpt: '',
     content: '',
-    coverImage: '',
+    featuredImage: '',
+    gallery: [] as string[],
     author: '',
     tags: '',
     category: 'Company News',
     seoTitle: '',
     seoDescription: '',
     status: 'draft' as 'draft' | 'published',
+    featured: false,
   });
 
   // Cloudinary config
   const CLOUDINARY_CLOUD_NAME = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'your_cloud_name';
   const CLOUDINARY_UPLOAD_PRESET = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'sapres_unsigned';
 
+  
   /** Upload a single file to Cloudinary and return { secure_url, public_id } */
-  const uploadToCloudinary = async (file: File): Promise<{ secure_url: string; public_id: string }> => {
+  const uploadToCloudinary = async (file: File, folder: string = 'sapres/services'): Promise<{ secure_url: string; public_id: string }> => {
     const formData = new FormData();
     formData.append('file', file);
     formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('folder', 'sapres/services');
+    formData.append('folder', folder);
 
     const url = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
     const res = await fetch(url, { method: 'POST', body: formData });
@@ -154,7 +161,6 @@ const ContentPage: React.FC = () => {
     projectChallenges: '', // comma separated string
     projectSolutions: '', // comma separated string
     projectResults: '', // comma separated string
-    testimonial: '', // testimonial ID or clientName for now, will adjust if needed
     featured: false,
     status: 'draft' as 'draft' | 'published' | 'archived',
     displayOrder: 0,
@@ -379,7 +385,7 @@ const ContentPage: React.FC = () => {
   // ---------- Form helpers ----------
   const resetBlogForm = () => {
     setEditingBlog(null);
-    setBlogForm({ title: '', excerpt: '', content: '', coverImage: '', author: '', tags: '', category: 'Company News', seoTitle: '', seoDescription: '', status: 'draft' });
+    setBlogForm({ title: '', excerpt: '', content: '', featuredImage: '', gallery: [], author: '', tags: '', category: 'Company News', seoTitle: '', seoDescription: '', status: 'draft', featured: false });
   };
 
   const openBlogModal = (blog?: Blog) => {
@@ -389,13 +395,15 @@ const ContentPage: React.FC = () => {
         title: blog.title,
         excerpt: blog.excerpt,
         content: blog.content,
-        coverImage: blog.coverImage?.secureUrl || '',
+        featuredImage: blog.coverImage?.secureUrl || blog.featuredImage?.secureUrl || '',
+        gallery: blog.gallery?.map((g: any) => g.secureUrl) || [],
         author: typeof blog.author === 'string' ? blog.author : '',
         tags: blog.tags.join(', '),
         category: blog.category || 'Company News',
         seoTitle: blog.seoTitle || blog.title,
         seoDescription: blog.seoDescription || blog.excerpt,
         status: blog.status || 'draft',
+        featured: blog.featured || false,
       });
     } else {
       resetBlogForm();
@@ -414,9 +422,29 @@ const ContentPage: React.FC = () => {
       seoTitle: blogForm.seoTitle || blogForm.title,
       seoDescription: blogForm.seoDescription || blogForm.excerpt,
       status: blogForm.status,
-      coverImage: blogForm.coverImage ? { secureUrl: blogForm.coverImage, publicId: 'manual', format: 'jpg', bytes: 0 } : undefined,
-      author: blogForm.author,
+      featured: blogForm.featured,
     };
+    
+    // Handle featured image
+    if (blogForm.featuredImage) {
+      payload.featuredImage = { secureUrl: blogForm.featuredImage, publicId: 'manual', format: 'jpg', bytes: 0 };
+    }
+    
+    // Handle gallery
+    if (blogForm.gallery.length > 0) {
+      payload.gallery = blogForm.gallery.map((url) => ({
+        secureUrl: url,
+        publicId: 'manual',
+        format: 'jpg',
+        bytes: 0,
+      }));
+    }
+    
+    // Only include author if it's not empty
+    if (blogForm.author && blogForm.author.trim()) {
+      payload.author = blogForm.author;
+    }
+    
     if (editingBlog) {
       updateBlogMutation.mutate({ id: editingBlog._id, data: payload });
     } else {
@@ -498,7 +526,6 @@ const ContentPage: React.FC = () => {
 
   const handleProjectSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Build payload, stripping empty strings so Joi validation doesn't reject them
     const payload: Record<string, any> = {};
 
     // Required fields — always include
@@ -507,45 +534,74 @@ const ContentPage: React.FC = () => {
     payload.description = projectForm.description;
     payload.projectCategory = projectForm.projectCategory;
 
-    // Optional string fields — only include when non-empty
-    if (projectForm.projectType) payload.projectType = projectForm.projectType;
-    if (projectForm.capacity) payload.capacity = projectForm.capacity;
-    if (projectForm.duration) payload.duration = projectForm.duration;
-    // completionDate: only include if it has a value (Joi.date() rejects empty string)
+    // Optional string fields — always include (even if empty, backend accepts them as optional)
+    payload.projectType = projectForm.projectType || '';
+    payload.capacity = projectForm.capacity || '';
+    payload.duration = projectForm.duration || '';
+    
+    // completionDate: only include if it has a value
     if (projectForm.completionDate) {
       payload.completionDate = projectForm.completionDate;
     }
-    if (projectForm.seoTitle) payload.seoTitle = projectForm.seoTitle;
-    if (projectForm.seoDescription) payload.seoDescription = projectForm.seoDescription;
+    
+    payload.seoTitle = projectForm.seoTitle || '';
+    payload.seoDescription = projectForm.seoDescription || '';
 
     // Boolean / number fields
     payload.featured = projectForm.featured;
     payload.status = projectForm.status;
     payload.displayOrder = projectForm.displayOrder;
 
-    // Handle client object — only send when client name is provided
+    // Handle client object — send even if empty/trimmed to allow clearing it
     if (projectForm.client?.trim()) {
       payload.client = { name: projectForm.client.trim() };
+    } else if (editingProject) {
+      // When updating, send empty object to potentially clear client
+      payload.client = null;
     }
 
-    // Handle testimonial object — only send when client name is provided
-    if (projectForm.testimonial?.trim()) {
-      payload.testimonial = { clientName: projectForm.testimonial.trim() };
+    // Handle featured image — only send when URL is provided
+    if (projectForm.featuredImage?.trim()) {
+      payload.featuredImage = { secureUrl: projectForm.featuredImage, publicId: 'manual', format: 'jpg', bytes: 0 };
     }
+
+    // Handle gallery images — send as array (empty or with items)
+    payload.gallery = projectForm.gallery.map((url) => ({
+      secureUrl: url,
+      publicId: 'manual',
+      format: 'jpg',
+      bytes: 0,
+    }));
+
+    // Handle before images — send as array (empty or with items)
+    payload.beforeImages = projectForm.beforeImages.map((url) => ({
+      secureUrl: url,
+      publicId: 'manual',
+      format: 'jpg',
+      bytes: 0,
+    }));
+
+    // Handle after images — send as array (empty or with items)
+    payload.afterImages = projectForm.afterImages.map((url) => ({
+      secureUrl: url,
+      publicId: 'manual',
+      format: 'jpg',
+      bytes: 0,
+    }));
 
     // Convert comma-separated strings to arrays
-    if (projectForm.technologiesUsed) {
-      payload.technologiesUsed = projectForm.technologiesUsed.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    if (projectForm.projectChallenges) {
-      payload.projectChallenges = projectForm.projectChallenges.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    if (projectForm.projectSolutions) {
-      payload.projectSolutions = projectForm.projectSolutions.split(',').map((s) => s.trim()).filter(Boolean);
-    }
-    if (projectForm.projectResults) {
-      payload.projectResults = projectForm.projectResults.split(',').map((s) => s.trim()).filter(Boolean);
-    }
+    payload.technologiesUsed = projectForm.technologiesUsed 
+      ? projectForm.technologiesUsed.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    payload.projectChallenges = projectForm.projectChallenges
+      ? projectForm.projectChallenges.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    payload.projectSolutions = projectForm.projectSolutions
+      ? projectForm.projectSolutions.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
+    payload.projectResults = projectForm.projectResults
+      ? projectForm.projectResults.split(',').map((s) => s.trim()).filter(Boolean)
+      : [];
 
     console.log("PAYLOAD : ", payload)
 
@@ -576,7 +632,6 @@ const ContentPage: React.FC = () => {
       projectChallenges: '',
       projectSolutions: '',
       projectResults: '',
-      testimonial: '',
       featured: false,
       status: 'draft',
       displayOrder: 0,
@@ -589,12 +644,20 @@ const ContentPage: React.FC = () => {
   const openProjectModal = (proj?: Project) => {
     if (proj) {
       setEditingProject(proj);
+      // Handle client - could be string or object
+      let clientName = '';
+      if (typeof proj.client === 'string') {
+        clientName = proj.client;
+      } else if (proj.client && typeof proj.client === 'object' && 'name' in proj.client) {
+        clientName = (proj.client as any).name;
+      }
+      
       setProjectForm({
         title: proj.title || '',
         slug: proj.slug || '',
         shortDescription: proj.shortDescription || '',
         description: proj.description || '',
-        client: proj.client || '',
+        client: clientName,
         projectCategory: proj.projectCategory || '',
         projectType: proj.projectType || '',
         capacity: proj.capacity || '',
@@ -608,7 +671,6 @@ const ContentPage: React.FC = () => {
         projectChallenges: proj.projectChallenges?.join(', ') || '',
         projectSolutions: proj.projectSolutions?.join(', ') || '',
         projectResults: proj.projectResults?.join(', ') || '',
-        testimonial: proj.testimonial?._id || '', // Assuming testimonial is stored as ID or clientName
         featured: proj.featured || false,
         status: proj.status || 'draft',
         displayOrder: proj.displayOrder || 0,
@@ -1116,17 +1178,120 @@ const ContentPage: React.FC = () => {
               <input className={inputClass} value={blogForm.seoDescription} onChange={(e) => setBlogForm({ ...blogForm, seoDescription: e.target.value })} required />
             </div>
           </div>
-          <div>
-            <label className={labelClass}>Cover Image URL</label>
-            <input className={inputClass} value={blogForm.coverImage} onChange={(e) => setBlogForm({ ...blogForm, coverImage: e.target.value })} placeholder="https://..." />
+
+          {/* Featured Image Upload Section */}
+          <div className="brutal-card p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-3">Featured Image</h4>
+            {blogForm.featuredImage && (
+              <div className="relative w-full h-48 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 mb-3 group">
+                <img src={blogForm.featuredImage} alt="Featured" className="w-full h-full object-cover" />
+                <button 
+                  type="button" 
+                  onClick={() => setBlogForm({ ...blogForm, featuredImage: '' })} 
+                  className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                >
+                  <XMarkIcon className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
+              <CloudArrowUpIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Upload featured image to Cloudinary</p>
+              <input 
+                ref={blogCoverImageInputRef} 
+                type="file" 
+                accept="image/*" 
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setUploadingBlogCoverImage(true);
+                  try {
+                    const result = await uploadToCloudinary(file, 'sapres/blogs');
+                    setBlogForm({ ...blogForm, featuredImage: result.secure_url });
+                    toast.success('Featured image uploaded');
+                  } catch (err: any) {
+                    toast.error(err.message || 'Upload failed');
+                  } finally {
+                    setUploadingBlogCoverImage(false);
+                    if (blogCoverImageInputRef.current) blogCoverImageInputRef.current.value = '';
+                  }
+                }} 
+                disabled={uploadingBlogCoverImage} 
+                className="block w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+              />
+              {uploadingBlogCoverImage && <p className="text-xs text-indigo-600 mt-2 font-medium">Uploading...</p>}
+            </div>
           </div>
+
+          {/* Gallery Upload Section */}
+          <div className="brutal-card p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+            <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-3">Gallery Images</h4>
+            {blogForm.gallery.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-3">
+                {blogForm.gallery.map((url, i) => (
+                  <div key={i} className="relative w-24 h-24 rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600 group">
+                    <img src={url} alt={`Gallery ${i}`} className="w-full h-full object-cover" />
+                    <button 
+                      type="button" 
+                      onClick={() => setBlogForm({ ...blogForm, gallery: blogForm.gallery.filter((_, idx) => idx !== i) })}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    >
+                      <XMarkIcon className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center">
+              <CloudArrowUpIcon className="h-8 w-8 mx-auto text-gray-400 mb-2" />
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">Upload gallery images (max 10)</p>
+              <input 
+                ref={blogGalleryInputRef} 
+                type="file" 
+                accept="image/*" 
+                multiple
+                onChange={async (e) => {
+                  const files = e.target.files;
+                  if (!files || files.length === 0) return;
+                  if (blogForm.gallery.length + files.length > 10) {
+                    toast.warning('Maximum 10 gallery images allowed');
+                    return;
+                  }
+                  setUploadingBlogGallery(true);
+                  try {
+                    const results = await Promise.all(
+                      Array.from(files).map((f) => uploadToCloudinary(f, 'sapres/blogs'))
+                    );
+                    const newUrls = results.map((r) => r.secure_url);
+                    setBlogForm({ ...blogForm, gallery: [...blogForm.gallery, ...newUrls] });
+                    toast.success(`${newUrls.length} image(s) uploaded`);
+                  } catch (err: any) {
+                    toast.error(err.message || 'Upload failed');
+                  } finally {
+                    setUploadingBlogGallery(false);
+                    if (blogGalleryInputRef.current) blogGalleryInputRef.current.value = '';
+                  }
+                }} 
+                disabled={uploadingBlogGallery} 
+                className="block w-full text-xs text-gray-500 file:mr-2 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed" 
+              />
+              {uploadingBlogGallery && <p className="text-xs text-indigo-600 mt-2 font-medium">Uploading...</p>}
+            </div>
+          </div>
+
           <div>
             <label className={labelClass}>Tags (comma separated)</label>
             <input className={inputClass} value={blogForm.tags} onChange={(e) => setBlogForm({ ...blogForm, tags: e.target.value })} placeholder="tech, business, news" />
           </div>
-          <div className="flex items-center gap-2">
-            <input type="checkbox" checked={blogForm.status === 'published'} onChange={(e) => setBlogForm({ ...blogForm, status: e.target.checked ? 'published' : 'draft' })} className="rounded border-gray-300 dark:border-gray-600" />
-            <label className="text-sm text-gray-700 dark:text-gray-300">Published</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center gap-2">
+              <input type="checkbox" checked={blogForm.status === 'published'} onChange={(e) => setBlogForm({ ...blogForm, status: e.target.checked ? 'published' : 'draft' })} className="rounded border-gray-300 dark:border-gray-600" />
+              <label className="text-sm text-gray-700 dark:text-gray-300">Published</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input type="checkbox" checked={blogForm.featured} onChange={(e) => setBlogForm({ ...blogForm, featured: e.target.checked })} className="rounded border-gray-300 dark:border-gray-600" />
+              <label className="text-sm text-gray-700 dark:text-gray-300">Featured</label>
+            </div>
           </div>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={() => { setBlogModalOpen(false); resetBlogForm(); }} className={btnSecondary}>Cancel</button>
@@ -1608,12 +1773,6 @@ const ContentPage: React.FC = () => {
             <textarea className={inputClass} rows={2} value={projectForm.projectResults} onChange={(e) => setProjectForm({ ...projectForm, projectResults: e.target.value })} placeholder="Increased efficiency by 30%, Improved user engagement" />
           </div>
 
-          {/* Testimonial (simple text input for now, can be a dropdown later) */}
-          <div>
-            <label className={labelClass}>Testimonial (Client Name or ID)</label>
-            <input className={inputClass} value={projectForm.testimonial} onChange={(e) => setProjectForm({ ...projectForm, testimonial: e.target.value })} placeholder="John Doe" />
-          </div>
-
           {/* SEO Fields */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -1805,9 +1964,9 @@ const ContentPage: React.FC = () => {
       {activeTab === 'homepage' && renderHomepageTab()}
       {activeTab === 'blog' && renderBlogTab()}
       {activeTab === 'services' && renderServicesTab()}
-      {activeTab === 'projects' && renderProjectsTab()}
+      {/* {activeTab === 'projects' && renderProjectsTab()} */}
       {activeTab === 'testimonials' && renderTestimonialsTab()}
-      {activeTab === 'partners' && renderPartnersTab()}
+      {/* {activeTab === 'partners' && renderPartnersTab()} */}
     </div>
   );
 };

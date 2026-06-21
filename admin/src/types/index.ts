@@ -194,10 +194,13 @@ export interface Blog {
   slug: string;
   excerpt: string;
   content: string;
-  coverImage: Asset;
+  coverImage?: Asset;
+  featuredImage?: Asset;
+  gallery?: Asset[];
   author: string | User;
   tags: string[];
   category: string;
+  featured: boolean;
   seoTitle?: string;
   seoDescription?: string;
   status: 'draft' | 'published';

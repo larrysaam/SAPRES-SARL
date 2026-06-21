@@ -16,6 +16,7 @@ class BlogController {
   static async getBySlug(req, res, next) {
     try {
       const blog = await BlogService.getBySlug(req.params.slug);
+      console.log('Retrieved blog:', blog);
       res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, blog, 'Blog retrieved successfully'));
     } catch (err) {
       next(err);
@@ -42,6 +43,7 @@ class BlogController {
 
   static async update(req, res, next) {
     try {
+      console.log('Updating blog with ID:', req.params.id, 'and data:', req.body);
       const blog = await BlogService.update(req.params.id, req.body);
       res.status(httpStatus.OK).json(new ApiResponse(httpStatus.OK, blog, 'Blog updated successfully'));
     } catch (err) {
