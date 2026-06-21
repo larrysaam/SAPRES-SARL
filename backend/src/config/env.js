@@ -30,6 +30,12 @@ const envVarsSchema = Joi.object()
     CLOUDINARY_CLOUD_NAME: Joi.string().description('Cloudinary cloud name'),
     CLOUDINARY_API_KEY: Joi.string().description('Cloudinary API key'),
     CLOUDINARY_API_SECRET: Joi.string().description('Cloudinary API secret'),
+    CAMERPAY_API_KEY: Joi.string().description('CAMERPAY API key'),
+    CAMERPAY_SECRET_KEY: Joi.string().description('CAMERPAY secret key'),
+    CAMERPAY_MERCHANT_ID: Joi.string().description('CAMERPAY merchant ID'),
+    CAMERPAY_SANDBOX: Joi.string().valid('true', 'false').default('true').description('Use CAMERPAY sandbox environment'),
+    FRONTEND_URL: Joi.string().default('http://localhost:3000').description('Frontend application URL'),
+    BACKEND_URL: Joi.string().default('http://localhost:5000').description('Backend API URL'),
   })
   .unknown();
 
