@@ -114,7 +114,7 @@ export interface Order {
   total: number;
   paymentMethod: PaymentMethod;
   paymentStatus: PaymentStatus;
-  orderStatus: OrderStatus;
+  status: OrderStatus;
   createdAt: string;
   updatedAt: string;
 }

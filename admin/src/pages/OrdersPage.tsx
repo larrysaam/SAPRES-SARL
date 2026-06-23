@@ -10,7 +10,17 @@ import toast from '../components/Toast';
 import orderService from '../services/orderService';
 import type { Order } from '../types';
 
-const ORDER_STATUSES = ['pending', 'paid', 'processing', 'shipped', 'delivered', 'cancelled'];
+// Actual database statuses (uppercase for matching)
+const ORDER_STATUSES = ['PENDING_PAYMENT', 'PAID', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'CANCELLED'];
+
+// Helper function to format status to display format
+const formatStatusDisplay = (status: string): string => {
+  return status
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join(' ');
+};
 
 const OrdersPage: React.FC = () => {
   const queryClient = useQueryClient();
@@ -55,16 +65,16 @@ const OrdersPage: React.FC = () => {
 
   const handleStatusChange = (orderId: string, newStatus: string) => {
     setUpdatingStatus(orderId);
-    updateMutation.mutate({ id: orderId, data: { orderStatus: newStatus as Order['orderStatus'] } });
+    updateMutation.mutate({ id: orderId, data: { status: newStatus as any } });
   };
 
   const statusColors: Record<string, string> = {
-    pending: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-    paid: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-    processing: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
-    shipped: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-    delivered: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    cancelled: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+    PENDING_PAYMENT: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+    PAID: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+    PROCESSING: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400',
+    SHIPPED: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
+    DELIVERED: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    CANCELLED: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
   };
 
   const paymentStatusColors: Record<string, string> = {
@@ -103,20 +113,12 @@ const OrdersPage: React.FC = () => {
       key: 'orderStatus',
       header: 'Status',
       render: (o: Order) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[o.orderStatus || 'pending']}`}>
-          {o.orderStatus || 'pending'}
+        <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusColors[o.status || 'PENDING_PAYMENT']}`}>
+          {formatStatusDisplay(o.status || 'PENDING_PAYMENT')}
         </span>
       ),
     },
-    {
-      key: 'paymentStatus',
-      header: 'Payment',
-      render: (o: Order) => (
-        <span className={`px-2 py-1 text-xs font-medium rounded-full ${paymentStatusColors[o.paymentStatus || 'pending']}`}>
-          {o.paymentStatus || 'pending'}
-        </span>
-      ),
-    },
+    
     {
       key: 'createdAt',
       header: 'Date',
@@ -143,7 +145,7 @@ const OrdersPage: React.FC = () => {
         >
           <option value="">All Statuses</option>
           {ORDER_STATUSES.map((s) => (
-            <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+            <option key={s} value={s}>{formatStatusDisplay(s)}</option>
           ))}
         </select>
       </div>
@@ -176,13 +178,13 @@ const OrdersPage: React.FC = () => {
             <div className="flex items-center gap-3">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Update Status:</label>
               <select
-                value={selectedOrder.orderStatus || 'pending'}
+                value={selectedOrder.status || 'PENDING_PAYMENT'}
                 onChange={(e) => handleStatusChange(selectedOrder._id!, e.target.value)}
                 disabled={updatingStatus === selectedOrder._id}
                 className="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-indigo-500 text-sm"
               >
                 {ORDER_STATUSES.map((s) => (
-                  <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
+                  <option key={s} value={s}>{formatStatusDisplay(s)}</option>
                 ))}
               </select>
               {updatingStatus === selectedOrder._id && (
@@ -260,12 +262,12 @@ const OrdersPage: React.FC = () => {
                   {(selectedOrder as any).timeline.map((entry: any, idx: number) => (
                     <div key={idx} className="flex items-start gap-3">
                       <div className="flex flex-col items-center">
-                        <div className={`h-3 w-3 rounded-full ${entry.status === 'delivered' || entry.status === 'paid' ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
+                        <div className={`h-3 w-3 rounded-full ${entry.status === 'DELIVERED' || entry.status === 'PAID' ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`} />
                         {idx < (selectedOrder as any).timeline.length - 1 && <div className="w-0.5 h-8 bg-gray-200 dark:bg-gray-700" />}
                       </div>
                       <div className="pb-3">
                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
-                          {entry.status || entry.action || 'Update'}
+                          {formatStatusDisplay(entry.status || entry.action || 'Update')}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
                           {entry.timestamp ? new Date(entry.timestamp).toLocaleString() : ''}

@@ -12,9 +12,60 @@ const validate = (schema) => (req, res, next) => {
   next();
 };
 
+/**
+ * Create Order
+ * POST /api/v1/orders
+ * 
+ * Supports both registered users and guest checkouts
+ * 
+ * SECURITY: Frontend sends ONLY productId + quantity
+ * Backend calculates all prices and totals
+ * 
+ * Request Body:
+ * {
+ *   "items": [
+ *     { "productId": "...", "quantity": 2 },
+ *     { "productId": "...", "quantity": 1 }
+ *   ],
+ *   "shippingAddress": {
+ *     "fullName": "Jean Dupont",
+ *     "phone": "699123456",
+ *     "email": "jean@example.cm",
+ *     "address": "123 Rue Main",
+ *     "city": "Douala",
+ *     "postalCode": "28000",
+ *     "country": "Cameroon"
+ *   }
+ * }
+ */
 const createOrder = asyncHandler(async (req, res) => {
-  const order = await OrderService.create(req.body);
-  return new ApiResponse(httpStatus.CREATED, order, 'Order created successfully').send(res);
+  console.log('Creating order with request body:', req.body);
+  const { items, shippingAddress } = req.body;
+  const userId = req.user?._id || null; // Optional for guest checkout
+
+  // Validate items structure
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new ApiError('Order must contain at least one item', httpStatus.BAD_REQUEST);
+  }
+
+  // SECURITY: Reject if frontend tries to send prices
+  for (const item of items) {
+    if (item.price || item.unitPrice || item.totalPrice || item.subtotal) {
+      throw new ApiError(
+        'Frontend cannot specify product prices. Security violation detected.',
+        httpStatus.BAD_REQUEST
+      );
+    }
+  }
+
+  // Call service with secure backend calculation
+  const order = await OrderService.createOrder(userId, items, shippingAddress);
+
+  return new ApiResponse(
+    httpStatus.CREATED,
+    order,
+    'Order created successfully. Next: Initiate payment'
+  ).send(res);
 });
 
 const getAllOrders = asyncHandler(async (req, res) => {

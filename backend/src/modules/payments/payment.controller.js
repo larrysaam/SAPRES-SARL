@@ -2,327 +2,280 @@ import httpStatus from 'http-status';
 import { asyncHandler } from '../../utils/asyncHandler.js';
 import PaymentService from './payment.service.js';
 import CamerpayService from './camerpay.service.js';
+import Payment from './payment.model.js';
+import OrderService from '../orders/order.service.js';
 import { ApiResponse } from '../../utils/ApiResponse.js';
 import { ApiError } from '../../utils/ApiError.js';
-import axios from 'axios';
-
-const CINETPAY_BASE_URL = 'https://api-checkout.cinetpay.com/v2/payment';
-
-const getAllPayments = asyncHandler(async (req, res) => {
-  const { page, limit, status } = req.query;
-  const payments = await PaymentService.getAll({ page, limit, status });
-  return new ApiResponse(httpStatus.OK, payments, 'Payments fetched successfully').send(res);
-});
-
-const initiatePayment = asyncHandler(async (req, res) => {
-  const { amount, currency, description, customer_id, transaction_id, return_url, cancel_url } = req.body;
-
-  if (!amount || !currency || !description || !customer_id || !transaction_id) {
-    return res.status(httpStatus.BAD_REQUEST).send({ message: 'Missing required payment details' });
-  }
-
-  const cinetpayPayload = {
-    apikey: process.env.CINETPAY_API_KEY,
-    site_id: process.env.CINETPAY_SITE_ID,
-    transaction_id: transaction_id,
-    amount: amount,
-    currency: currency,
-    description: description,
-    return_url: return_url || 'http://localhost:3000/payment/success',
-    cancel_url: cancel_url || 'http://localhost:3000/payment/cancel',
-    notify_url: process.env.CINETPAY_NOTIFY_URL,
-    customer_id: customer_id,
-    channels: 'ALL',
-  };
-
-  try {
-    const response = await axios.post(CINETPAY_BASE_URL, cinetpayPayload);
-    if (response.data.code === '201') {
-      res.status(httpStatus.OK).send({ message: 'Payment initiated successfully', payment_url: response.data.data.payment_url });
-    } else {
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).send({ message: 'Failed to initiate payment with CinetPay', error: response.data.message });
-    }
-  } catch (error) {
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).send({ message: 'Error initiating CinetPay payment' });
-  }
-});
-
-const handleCinetpayCallback = asyncHandler(async (req, res) => {
-  const { transaction_id, status, amount, currency } = req.body;
-  if (!transaction_id || !status || !amount || !currency) {
-    return res.status(httpStatus.BAD_REQUEST).send({ message: 'Missing required callback data' });
-  }
-
-  try {
-    const verificationPayload = {
-      apikey: process.env.CINETPAY_API_KEY,
-      site_id: process.env.CINETPAY_SITE_ID,
-      transaction_id: transaction_id,
-    };
-    const verificationResponse = await axios.post(`${CINETPAY_BASE_URL}/check`, verificationPayload);
-
-    if (verificationResponse.data.code === '200') {
-      const transactionStatus = verificationResponse.data.data.status;
-      const paymentStatus = transactionStatus === 'ACCEPTED' ? 'successful' : 'failed';
-      await PaymentService.updatePaymentByTransactionId(transaction_id, { status: paymentStatus, amount, currency });
-      res.status(httpStatus.OK).send({ message: 'CinetPay callback processed successfully', paymentStatus });
-    } else {
-      res.status(httpStatus.INTERNAL_SERVER_ERROR).send({ message: 'CinetPay transaction verification failed' });
-    }
-  } catch (error) {
-    res.status(httpStatus.INTERNAL_SERVER_ERROR).send({ message: 'Error processing CinetPay callback' });
-  }
-});
 
 /**
- * Initiate CAMERPAY payment (MTN Mobile Money or Orange Money)
+ * Initiate CAMERPAY Payment
  * POST /api/v1/payments/camerpay/initiate
  * 
- * Request body:
+ * Supports both registered users and guest checkouts
+ * 
+ * Request Body:
  * {
- *   "amount": 5000,
- *   "currency": "XAF",
- *   "phone": "699123456",
- *   "orderId": "ORDER-12345",
- *   "customerName": "Jean Dupont",
- *   "customerEmail": "jean@exemple.cm",
- *   "returnUrl": "https://yoursite.cm/payment/success",
- *   "callbackUrl": "https://yoursite.cm/callback"
+ *   "orderId": "...",
+ *   "paymentMethod": "mtn_money" | "orange_money"
  * }
  */
 const initiateCamerpayPayment = asyncHandler(async (req, res) => {
-  const {
-    amount,
-    currency = 'XAF',
-    phone,
+  const { orderId, paymentMethod } = req.body;
+  const userId = req.user?._id || null; // Optional for guests
+
+  if (!orderId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'orderId is required');
+  }
+
+  if (!['mtn_money', 'orange_money'].includes(paymentMethod)) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid paymentMethod');
+  }
+
+  const result = await PaymentService.initiateCamerpayPayment(
     orderId,
-    customerName,
-    customerEmail,
-    returnUrl,
-    callbackUrl,
-  } = req.body;
+    userId,
+    paymentMethod
+  );
 
-  // Validate required fields
-  if (!amount || !phone || !orderId || !customerName || !customerEmail) {
-    throw new ApiError(
-      'Missing required fields: amount, phone, orderId, customerName, customerEmail',
-      httpStatus.BAD_REQUEST
-    );
-  }
+  console.log('Payment initiation result:', result);
 
-  try {
-    // Initiate payment with CAMERPAY service
-    const paymentResult = await CamerpayService.initiatePayment({
-      amount,
-      currency,
-      phone,
-      orderId,
-      customerName,
-      customerEmail,
-      returnUrl,
-      callbackUrl,
-    });
-
-    // Save payment record to database
-    const paymentRecord = await PaymentService.create({
-      order: req.body.orderId, // Assuming orderId is the order document ID
-      provider: 'camerpay',
-      amount: paymentResult.amount,
-      transactionReference: paymentResult.transactionId, // Store UUID
-      status: 'pending',
-      rawResponse: {
-        provider: 'camerpay',
-        transactionUuid: paymentResult.transactionId,
-        initiatedAt: new Date().toISOString(),
-      },
-    });
-
-    return new ApiResponse(
-      httpStatus.OK,
-      {
-        success: true,
-        transactionId: paymentResult.transactionId,
-        payUrl: paymentResult.payUrl, // ✅ Redirect customer to this URL
-        invoiceId: paymentResult.invoiceId,
-        amount: paymentResult.amount,
-        currency: paymentResult.currency,
-        customerName: paymentResult.customerName,
-        status: paymentResult.status,
-        paymentRecordId: paymentRecord._id,
-      },
-      'CAMERPAY payment initiated successfully'
-    ).send(res);
-  } catch (error) {
-    console.error('[CAMERPAY] Payment initiation error:', error.message);
-    throw new ApiError(
-      error.message || 'Failed to initiate CAMERPAY payment',
-      httpStatus.BAD_REQUEST
-    );
-  }
+  return new ApiResponse(
+    httpStatus.OK,
+    result,
+    'Payment initiated successfully'
+  ).send(res);
 });
 
 /**
- * Verify CAMERPAY payment status
- * GET /api/v1/payments/camerpay/verify/:transactionId
+ * Verify Payment Status
+ * GET /api/v1/payments/camerpay/verify/:transactionReference
  */
-const verifyCamerpayPayment = asyncHandler(async (req, res) => {
-  const { transactionId } = req.params;
+const verifyPaymentStatus = asyncHandler(async (req, res) => {
+  const { transactionReference } = req.params;
 
-  if (!transactionId) {
-    throw new ApiError('Transaction ID (UUID) is required', httpStatus.BAD_REQUEST);
+  if (!transactionReference) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'transactionReference is required');
   }
 
-  try {
-    // Verify payment with CAMERPAY service
-    const verificationResult = await CamerpayService.verifyPayment(transactionId);
+  const payment = await PaymentService.getPaymentByTransactionId(transactionReference);
 
-    // Update payment record in database
-    const newStatus = verificationResult.success ? 'successful' : 'failed';
-    await PaymentService.updatePaymentByTransactionId(transactionId, {
-      status: newStatus,
-    });
-
-    return new ApiResponse(
-      httpStatus.OK,
-      {
-        success: verificationResult.success,
-        status: verificationResult.status,
-        transactionId: verificationResult.transactionUuid,
-        amount: verificationResult.amount,
-        currency: verificationResult.currency,
-        invoiceId: verificationResult.invoiceId,
-      },
-      'Payment verification completed'
-    ).send(res);
-  } catch (error) {
-    console.error('[CAMERPAY] Verification error:', error.message);
-    throw error;
-  }
+  return new ApiResponse(
+    httpStatus.OK,
+    {
+      success: payment.status === 'SUCCESS',
+      status: payment.status,
+      transactionReference: payment.transactionReference,
+      amount: payment.amount,
+      orderId: payment.order._id,
+      paidAt: payment.paidAt,
+    },
+    'Payment status retrieved'
+  ).send(res);
 });
 
 /**
- * Handle CAMERPAY webhook callback
+ * Handle CAMERPAY Webhook Callback
  * POST /api/v1/payments/camerpay/webhook
- * 
- * CAMERPAY sends webhook when payment status changes:
- * {
- *   "transaction_uuid": "uuid...",
- *   "merchant_invoice_id": "FACTURE-001",
- *   "amount": 5000,
- *   "currency": "XAF",
- *   "status": "confirmed|pending|failed",
- *   "customer_phone": "699123456",
- *   "created_at": "2024-01-01T12:00:00Z"
- * }
+ * NO AUTHENTICATION REQUIRED
  */
 const handleCamerpayWebhook = asyncHandler(async (req, res) => {
-  const data = req.body;
+  const webhookData = req.body;
+  const signature = req.headers['x-camerpay-signature'];
 
-  console.log('[CAMERPAY] Webhook received:', {
-    transactionUuid: data.transaction_uuid,
-    invoiceId: data.merchant_invoice_id,
-    status: data.status,
-  });
+  console.log('🔔 ========== WEBHOOK RECEIVED ==========');
+  console.log('Timestamp:', new Date().toISOString());
+  console.log('Webhook data:', JSON.stringify(webhookData, null, 2));
+  console.log('Signature header:', signature || 'NOT PROVIDED');
+  console.log('Headers:', JSON.stringify(req.headers, null, 2));
+  console.log('=======================================');
 
-  // Validate webhook data
-  if (!CamerpayService.validateWebhookCallback(data)) {
-    console.warn('[CAMERPAY] Invalid webhook data');
-    return new ApiResponse(
-      httpStatus.BAD_REQUEST,
-      null,
-      'Invalid webhook data'
-    ).send(res);
+  if (!webhookData || typeof webhookData !== 'object') {
+    console.error('❌ Invalid webhook data');
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Invalid webhook data');
   }
 
-  try {
-    const {
-      transaction_uuid,
-      merchant_invoice_id,
-      status,
-      amount,
-      currency,
-      customer_phone,
-    } = data;
+  const result = await PaymentService.handleCamerpayWebhook(webhookData, signature);
 
-    // Normalize status to our system's status
-    const normalizedStatus = CamerpayService.normalizeStatus(status);
+  console.log('✅ Webhook processed result:', result);
 
-    // Update payment record
-    const updatedPayment = await PaymentService.updatePaymentByTransactionId(transaction_uuid, {
-      status: normalizedStatus,
-      providerReference: transaction_uuid,
-      rawResponse: {
-        webhookData: data,
-        receivedAt: new Date().toISOString(),
-      },
-    });
+  return new ApiResponse(
+    httpStatus.OK,
+    result,
+    'Webhook processed successfully'
+  ).send(res);
+});
 
-    console.log('[CAMERPAY] Webhook processed successfully:', {
-      transactionUuid: transaction_uuid,
-      newStatus: normalizedStatus,
-    });
+/**
+ * Get Payment Details
+ * GET /api/v1/payments/:paymentId
+ */
+const getPaymentDetails = asyncHandler(async (req, res) => {
+  const { paymentId } = req.params;
 
-    // Return success response to CAMERPAY (200 OK)
+  if (!paymentId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'paymentId is required');
+  }
+
+  const payment = await PaymentService.getPaymentById(paymentId);
+
+  return new ApiResponse(
+    httpStatus.OK,
+    payment,
+    'Payment details retrieved'
+  ).send(res);
+});
+
+/**
+ * Get Order Payments
+ * GET /api/v1/payments/order/:orderId
+ */
+const getOrderPayments = asyncHandler(async (req, res) => {
+  const { orderId } = req.params;
+
+  if (!orderId) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'orderId is required');
+  }
+
+  const payments = await PaymentService.getPaymentsByOrderId(orderId);
+
+  return new ApiResponse(
+    httpStatus.OK,
+    payments,
+    'Order payments retrieved'
+  ).send(res);
+});
+
+/**
+ * Get All Payments (Admin)
+ * GET /api/v1/payments
+ */
+const getAllPayments = asyncHandler(async (req, res) => {
+  const { page = 1, limit = 20, status = null, userId = null } = req.query;
+
+  const payments = await PaymentService.getAllPayments({
+    page: parseInt(page),
+    limit: parseInt(limit),
+    status,
+    userId,
+  });
+
+  return new ApiResponse(
+    httpStatus.OK,
+    payments,
+    'Payments retrieved'
+  ).send(res);
+});
+
+/**
+ * Check Payment Status and Update if Needed (for testing/manual trigger)
+ * POST /api/v1/payments/camerpay/check-status/:transactionUuid
+ * 
+ * This endpoint manually checks payment status with CAMERPAY
+ * and updates order/payment if status changed
+ */
+const checkAndUpdatePaymentStatus = asyncHandler(async (req, res) => {
+  const { transactionUuid } = req.params;
+
+  if (!transactionUuid) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'transactionUuid is required');
+  }
+
+  console.log(`🔍 Checking payment status for transaction: ${transactionUuid}`);
+
+  // Find payment by transaction UUID
+  const payment = await Payment.findOne({ transactionUuid });
+
+  if (!payment) {
+    throw new ApiError(httpStatus.NOT_FOUND, 'Payment not found');
+  }
+
+  // If already processed, return current status
+  if (payment.status === 'SUCCESS' || payment.status === 'FAILED') {
+    console.log('✅ Payment already processed:', payment.status);
     return new ApiResponse(
       httpStatus.OK,
       {
-        transaction_uuid,
-        status: normalizedStatus,
-        received: true,
+        transactionUuid,
+        status: payment.status,
+        message: 'Payment already processed',
       },
-      'Webhook processed successfully'
+      'Payment status retrieved'
     ).send(res);
-  } catch (error) {
-    console.error('[CAMERPAY] Webhook processing error:', error.message);
-    // Still return 200 to acknowledge receipt
+  }
+
+  // Verify payment status with CAMERPAY
+  try {
+    const verification = await CamerpayService.verifyPayment(transactionUuid);
+    console.log('✅ Payment verified with CAMERPAY:', verification);
+
+    // If payment is now confirmed, update status
+    if (verification.status === 'confirmed' || verification.status === 'success') {
+      console.log('✅ Payment is confirmed! Updating order...');
+
+      payment.status = 'SUCCESS';
+      payment.paidAt = new Date();
+      payment.webhookData = verification;
+      await payment.save();
+
+      // Update order status
+      await OrderService.updateOrderStatus(payment.order, 'PAID');
+      await OrderService.reduceProductStock(payment.order);
+
+      console.log('✅ Order and payment updated to PAID');
+
+      return new ApiResponse(
+        httpStatus.OK,
+        {
+          transactionUuid,
+          status: 'SUCCESS',
+          message: 'Payment confirmed and order updated',
+        },
+        'Payment status updated successfully'
+      ).send(res);
+    }
+
+    // Payment still pending
     return new ApiResponse(
       httpStatus.OK,
-      { error: error.message },
-      'Webhook received but processing encountered an error'
+      {
+        transactionUuid,
+        status: verification.status,
+        message: `Payment status: ${verification.status}`,
+      },
+      'Payment status retrieved'
+    ).send(res);
+  } catch (error) {
+    console.error('⚠️ Could not verify with CAMERPAY:', error.message);
+    
+    return new ApiResponse(
+      httpStatus.OK,
+      {
+        transactionUuid,
+        status: payment.status,
+        message: 'Could not verify with CAMERPAY - payment still pending',
+      },
+      'Payment status'
     ).send(res);
   }
 });
 
-/**
- * Refund CAMERPAY payment
- * POST /api/v1/payments/camerpay/refund
- */
-const refundCamerpayPayment = asyncHandler(async (req, res) => {
-  const { transactionId, amount } = req.body;
+// Legacy endpoints - deprecated
+const initiatePayment = asyncHandler(async (req, res) => {
+  throw new ApiError(httpStatus.GONE, 'CinetPay is deprecated');
+});
 
-  if (!transactionId) {
-    throw new ApiError('Transaction ID (UUID) is required', httpStatus.BAD_REQUEST);
-  }
-
-  try {
-    const refundResult = await CamerpayService.refundPayment(transactionId, amount);
-
-    // Update payment record
-    await PaymentService.updatePaymentByTransactionId(transactionId, {
-      status: 'refunded',
-      rawResponse: {
-        refundId: refundResult.refundId,
-        refundedAt: new Date().toISOString(),
-      },
-    });
-
-    return new ApiResponse(
-      httpStatus.OK,
-      refundResult,
-      'Payment refund processed successfully'
-    ).send(res);
-  } catch (error) {
-    console.error('[CAMERPAY] Refund error:', error.message);
-    throw error;
-  }
+const handleCinetpayCallback = asyncHandler(async (req, res) => {
+  throw new ApiError(httpStatus.GONE, 'CinetPay is deprecated');
 });
 
 export default {
+  initiateCamerpayPayment,
+  verifyPaymentStatus,
+  handleCamerpayWebhook,
+  checkAndUpdatePaymentStatus,
+  getPaymentDetails,
+  getOrderPayments,
   getAllPayments,
   initiatePayment,
   handleCinetpayCallback,
-  initiateCamerpayPayment,
-  verifyCamerpayPayment,
-  handleCamerpayWebhook,
-  refundCamerpayPayment,
 };

@@ -21,7 +21,7 @@ class CamerpayService {
    * @param {Object} paymentData - Payment details
    * @returns {Promise} Payment initiation response with pay_url
    */
-  async initiatePayment(paymentData) {
+    async initiatePayment(paymentData) {
     try {
       const {
         amount,
@@ -33,30 +33,28 @@ class CamerpayService {
         customerName,
         returnUrl,
         callbackUrl,
-      } = paymentData;
-
-      // Validate required fields
+      } = paymentData;      // Validate required fields
       if (!amount || !phone || !orderId || !customerName || !customerEmail) {
-        throw new ApiError('Missing required fields: amount, phone, orderId, customerName, customerEmail', 400);
+        throw new ApiError(400, 'Missing required fields: amount, phone, orderId, customerName, customerEmail');
       }
 
       // Normalize phone number (remove non-digits)
       const normalizedPhone = phone.replace(/\D/g, '');
       if (!normalizedPhone || normalizedPhone.length < 9) {
-        throw new ApiError('Invalid phone number format', 400);
+        throw new ApiError(400, 'Invalid phone number format');
       }
 
       // CAMERPAY payload structure (v2.0)
       const payload = {
-        amount: Math.round(amount), // Amount in XAF (or specified currency)
+        amount: Math.round(amount),
         currency: currency.toUpperCase(),
-        merchant_invoice_id: orderId, // Unique invoice/order ID
+        merchant_invoice_id: orderId,
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: normalizedPhone,
-        merchant_callback_url: callbackUrl || `${process.env.BACKEND_URL || 'http://localhost:5000'}/api/v1/payments/camerpay/webhook`,
-        merchant_return_url: returnUrl || `${process.env.FRONTEND_URL || 'http://localhost:3000'}/payment/success`,
-        source: 'api', // Required by CAMERPAY
+        merchant_callback_url: 'https://ceramics-storage-canopener.ngrok-free.dev/api/v1/payments/camerpay/webhook',
+        merchant_return_url: 'https://www.sapressarl.com',
+        source: 'api',
       };
 
       const headers = {
@@ -70,11 +68,11 @@ class CamerpayService {
         `${this.baseUrl}/payment/initiate`,
         payload,
         { headers, timeout: 10000 }
-      );
+      );      // CAMERPAY returns: { success, transaction_uuid, pay_url, status }
 
-      // CAMERPAY returns: { success, transaction_uuid, pay_url, status }
       if (!response.data.success || !response.data.transaction_uuid) {
-        throw new ApiError('Invalid CAMERPAY response - missing transaction_uuid', 500);
+        console.error('[CAMERPAY] Invalid response:', response.data);
+        throw new ApiError(500, 'Invalid CAMERPAY response - missing transaction_uuid');
       }
 
       console.log(`[CAMERPAY] Payment initiated - Transaction UUID: ${response.data.transaction_uuid}`);
@@ -82,21 +80,32 @@ class CamerpayService {
       return {
         success: true,
         provider: 'camerpay',
-        transactionId: response.data.transaction_uuid, // Use transaction_uuid as ID
-        payUrl: response.data.pay_url, // Redirect customer to this URL
+        transactionId: response.data.transaction_uuid,
+        payUrl: response.data.pay_url,
         invoiceId: orderId,
         amount,
         currency,
         customerName,
         customerPhone: `****${normalizedPhone.slice(-4)}`,
-        status: response.data.status, // 'pending'
-      };
-    } catch (error) {
+        status: response.data.status,
+      };    } catch (error) {
       console.error('[CAMERPAY] Payment initiation error:', error.message);
-      if (error.response?.data?.message) {
-        throw new ApiError(`CAMERPAY Error: ${error.response.data.message}`, error.response.status || 500);
+      
+      // Handle axios errors properly
+      if (error.response?.data) {
+        console.error('[CAMERPAY] Response error:', error.response.data);
+        // Make sure statusCode is a number
+        const statusCode = error.response.status || 500;
+        throw new ApiError(statusCode, `CAMERPAY Error: ${error.response.data.message || error.message}`);
       }
-      throw new ApiError(`Payment initiation failed: ${error.message}`, 500);
+      
+      // If it's already an ApiError, re-throw it
+      if (error instanceof ApiError) {
+        throw error;
+      }
+      
+      // For other errors, ensure proper status code (must be a number)
+      throw new ApiError(500, `Payment initiation failed: ${error.message}`);
     }
   }
 
@@ -105,11 +114,10 @@ class CamerpayService {
    * GET /api/payment/{transaction_uuid}
    * @param {String} transactionUuid - Transaction UUID from CAMERPAY
    * @returns {Promise} Payment status
-   */
-  async verifyPayment(transactionUuid) {
+   */  async verifyPayment(transactionUuid) {
     try {
       if (!transactionUuid) {
-        throw new ApiError('Transaction UUID is required', 400);
+        throw new ApiError(400, 'Transaction UUID is required');
       }
 
       const headers = {
@@ -142,9 +150,9 @@ class CamerpayService {
     } catch (error) {
       console.error('[CAMERPAY] Payment verification error:', error.message);
       if (error.response?.status === 404) {
-        throw new ApiError('Transaction not found', 404);
+        throw new ApiError(404, 'Transaction not found');
       }
-      throw new ApiError(`Payment verification failed: ${error.message}`, 500);
+      throw new ApiError(500, `Payment verification failed: ${error.message}`);
     }
   }
 
@@ -170,7 +178,6 @@ class CamerpayService {
       return false;
     }
   }
-
   /**
    * Normalize payment status
    * @param {String} status - Status from CAMERPAY
@@ -185,6 +192,43 @@ class CamerpayService {
       'refunded': 'refunded',
     };
     return statusMap[status?.toLowerCase()] || status;
+  }
+
+  /**
+   * Validate webhook signature from CAMERPAY
+   * CAMERPAY signs webhooks for security verification
+   * @param {Object} webhookData - Webhook payload
+   * @param {String} signature - Signature from webhook header
+   * @returns {Boolean} Is valid signature
+   */
+  validateWebhookSignature(webhookData, signature) {
+    try {
+      if (!signature || !this.apiToken) {
+        console.warn('[CAMERPAY] Missing signature or API token for validation');
+        return false;
+      }
+
+      // CamerPay uses HMAC-SHA256 with API token as secret
+      // We create a hash of the webhook data and compare with the provided signature
+      const webhookString = JSON.stringify(webhookData);
+      const expectedSignature = crypto
+        .createHmac('sha256', this.apiToken)
+        .update(webhookString)
+        .digest('hex');
+
+      const isValid = expectedSignature === signature;
+      
+      if (isValid) {
+        console.log('[CAMERPAY] ✅ Webhook signature valid');
+      } else {
+        console.warn('[CAMERPAY] ❌ Webhook signature invalid');
+      }
+
+      return isValid;
+    } catch (error) {
+      console.error('[CAMERPAY] Webhook signature validation error:', error.message);
+      return false;
+    }
   }
 }
 

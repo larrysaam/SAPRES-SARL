@@ -1,24 +1,47 @@
 import Joi from 'joi';
 
+/**
+ * ✅ SECURE ORDER CREATION VALIDATION
+ * 
+ * Frontend ONLY sends:
+ * - productId (required)
+ * - quantity (required)
+ * 
+ * Backend NEVER accepts:
+ * - unitPrice (fetched from product)
+ * - totalPrice (calculated)
+ * - subtotal (calculated)
+ * - total (calculated)
+ * 
+ * This prevents price manipulation attacks
+ */
 const createOrderSchema = Joi.object({
-  customerName: Joi.string().required(),
-  customerPhone: Joi.string().required(),
-  customerEmail: Joi.string().email().optional(),
-  deliveryAddress: Joi.string().optional(),
   items: Joi.array().items(
     Joi.object({
-      product: Joi.string(),
-      productName: Joi.string(),
-      quantity: Joi.number().required(),
-      unitPrice: Joi.number().required(),
-      totalPrice: Joi.number().required(),
-    })
-  ).required(),
-  subtotal: Joi.number().required(),
-  deliveryFee: Joi.number().optional(),
-  total: Joi.number().required(),
-  paymentMethod: Joi.string().valid('mtn', 'orange').optional(),
-});
+      productId: Joi.string().required().messages({
+        'string.empty': 'productId cannot be empty',
+        'any.required': 'productId is required for each item',
+      }),
+      quantity: Joi.number().integer().min(1).required().messages({
+        'number.min': 'Quantity must be at least 1',
+        'any.required': 'quantity is required for each item',
+      }),
+    }).unknown(false) // Reject any other fields (like unitPrice, totalPrice)
+  ).required().messages({
+    'array.base': 'items must be an array',
+    'any.required': 'items array is required',
+  }),
+  shippingAddress: Joi.object({
+    fullName: Joi.string().max(100),
+    phone: Joi.string().max(20),
+    email: Joi.string().email(),
+    address: Joi.string().max(200),
+    city: Joi.string().max(50),
+    region: Joi.string().max(50).allow('').optional(),
+    postalCode: Joi.string().max(20).allow('').optional().default('0000'),
+    country: Joi.string().max(50),
+  }).optional(),
+}).unknown(false); // Reject any unknown fields
 
 const updateOrderSchema = Joi.object({
   orderStatus: Joi.string().valid('pending', 'processing', 'delivered', 'cancelled').optional(),
