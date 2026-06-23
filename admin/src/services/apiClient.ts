@@ -1,7 +1,8 @@
 import axios from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
-const API_BASE_URL = 'http://localhost:3002/api/v1';
+// Use environment variable or fallback to default
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://sapres.afayaconekt.care/api/v1';
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,

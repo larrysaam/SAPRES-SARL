@@ -18,6 +18,11 @@ app.get('/health', (req, res) => {
   res.json({ success: true, message: 'Server is running' });
 });
 
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({ success: true, message: 'SAPRES SARL API Server', version: '1.0.0' });
+});
+
 // API routes (versioned)
 app.use('/api/v1', routes);
 

@@ -67,7 +67,7 @@ class CamerpayService {
       console.log(`[CAMERPAY] Initiating payment for invoice: ${orderId}, Amount: ${amount} ${currency}`);
 
       const response = await axios.post(
-        `${this.baseUrl}/payment/initiate`,
+        `${BACKEND_URL}/payment/initiate`,
         payload,
         { headers, timeout: 10000 }
       );      // CAMERPAY returns: { success, transaction_uuid, pay_url, status }
@@ -129,7 +129,7 @@ class CamerpayService {
       console.log(`[CAMERPAY] Verifying transaction: ${transactionUuid}`);
 
       const response = await axios.get(
-        `${this.baseUrl}/payment/${transactionUuid}`,
+        `${BACKEND_URL}/payment/${transactionUuid}`,
         { headers, timeout: 10000 }
       );
 
