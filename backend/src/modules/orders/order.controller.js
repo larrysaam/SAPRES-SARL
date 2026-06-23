@@ -7,7 +7,7 @@ import { ApiError } from '../../utils/ApiError.js';
 const validate = (schema) => (req, res, next) => {
   const { error } = schema.validate(req.body);
   if (error) {
-    return next(new ApiError(400, error.details[0].message));
+    return next(new ApiError(httpStatus.BAD_REQUEST, error.details[0].message));
   }
   next();
 };
@@ -45,7 +45,7 @@ const createOrder = asyncHandler(async (req, res) => {
 
   // Validate items structure
   if (!Array.isArray(items) || items.length === 0) {
-    throw new ApiError('Order must contain at least one item', httpStatus.BAD_REQUEST);
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Order must contain at least one item');
   }
 
   // SECURITY: Reject if frontend tries to send prices
@@ -80,8 +80,12 @@ const getOrderById = asyncHandler(async (req, res) => {
 });
 
 const updateOrder = asyncHandler(async (req, res) => {
-  const order = await OrderService.update(req.params.id, req.body);
-  return new ApiResponse(httpStatus.OK, order, 'Order updated successfully').send(res);
+  const { status } = req.body;
+  if (!status) {
+    throw new ApiError(httpStatus.BAD_REQUEST, 'Status is required for update');
+  }
+  const order = await OrderService.updateOrderStatus(req.params.id, status);
+  return new ApiResponse(httpStatus.OK, order, 'Order status updated successfully').send(res);
 });
 
 const deleteOrder = asyncHandler(async (req, res) => {

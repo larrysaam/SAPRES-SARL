@@ -111,8 +111,11 @@ export interface Order {
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;
-  total: number;
-  paymentMethod: PaymentMethod;
+  totalAmount: number;
+  payment: {
+    status: PaymentStatus;
+    method: PaymentMethod;
+  };
   paymentStatus: PaymentStatus;
   status: OrderStatus;
   createdAt: string;

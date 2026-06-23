@@ -6,7 +6,6 @@ import {
   ClockIcon,
   ExclamationTriangleIcon,
   UserGroupIcon,
-  ArrowTrendingUpIcon,
 } from '@heroicons/react/24/outline';
 import dashboardService from '../services/dashboardService';
 import Skeleton from '../components/Skeleton';
@@ -66,13 +65,6 @@ const DashboardPage: React.FC = () => {
     },
   ];
 
-  const maxSalesRevenue = stats?.salesPerMonth
-    ? Math.max(...stats.salesPerMonth.map((s) => s.revenue), 1)
-    : 1;
-  const maxOrdersCount = stats?.ordersPerWeek
-    ? Math.max(...stats.ordersPerWeek.map((o) => o.count), 1)
-    : 1;
-
   return (
     <div className="p-6 space-y-6">
       <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
@@ -111,7 +103,7 @@ const DashboardPage: React.FC = () => {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Sales Per Month Chart */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        {/* <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <ArrowTrendingUpIcon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
             Sales Per Month
@@ -148,10 +140,10 @@ const DashboardPage: React.FC = () => {
           ) : (
             <p className="text-gray-500 dark:text-gray-400 text-center py-8">No sales data available</p>
           )}
-        </div>
+        </div> */}
 
         {/* Orders Per Week Chart */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        {/* <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
             <ShoppingCartIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             Orders Per Week
@@ -185,7 +177,7 @@ const DashboardPage: React.FC = () => {
           ) : (
             <p className="text-gray-500 dark:text-gray-400 text-center py-8">No order data available</p>
           )}
-        </div>
+        </div> */}
       </div>
 
       {/* Recent Activity and Low Stock */}

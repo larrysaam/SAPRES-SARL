@@ -12,17 +12,17 @@ const getDashboardStats = async () => {
   const totalOrders = orders.length;
 
   const totalSalesRevenue = orders
-    .filter((o) => o.paymentStatus === 'paid')
-    .reduce((sum, o) => sum + (o.total || 0), 0);
+    .filter((o) => o.payment?.status === 'PAID')
+    .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
 
-  const pendingOrders = orders.filter((o) => o.orderStatus === 'pending').length;
+  const pendingOrders = orders.filter((o) => o.status === 'PENDING_PAYMENT').length;
 
   // ── Sales per month (last 12 months from paid orders) ──
   const now = new Date();
   const twelveMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 11, 1);
 
   const paidOrders = orders.filter(
-    (o) => o.paymentStatus === 'paid' && new Date(o.createdAt) >= twelveMonthsAgo
+    (o) => o.payment?.status === 'PAID' && new Date(o.createdAt) >= twelveMonthsAgo
   );
 
   const salesMap = new Map();
@@ -38,7 +38,7 @@ const getDashboardStats = async () => {
     const d = new Date(o.createdAt);
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
     if (salesMap.has(key)) {
-      salesMap.get(key).revenue += o.total || 0;
+      salesMap.get(key).revenue += o.totalAmount || 0;
     }
   });
 
@@ -81,7 +81,7 @@ const getDashboardStats = async () => {
 
   // ── Recent activity (latest 10 orders + applications) ──
   const recentOrders = orders.slice(-5).map((o) => ({
-    action: `New order #${o.orderNumber || o._id} — ${o.total ? `${o.total.toLocaleString()} XAF` : 'Pending'}`,
+    action: `New order #${o.orderNumber || o._id} — ${o.totalAmount ? `${o.totalAmount.toLocaleString()} XAF` : 'Pending'}`,
     timestamp: o.createdAt,
     user: o.customerName,
   }));

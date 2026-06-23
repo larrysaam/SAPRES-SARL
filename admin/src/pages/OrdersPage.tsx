@@ -102,12 +102,12 @@ const OrdersPage: React.FC = () => {
     {
       key: 'total',
       header: 'Total',
-      render: (o: Order) => <span className="font-medium">{o.total?.toLocaleString()} XAF</span>,
+      render: (o: Order) => <span className="font-medium">{o.totalAmount?.toLocaleString()} XAF</span>,
     },
     {
       key: 'paymentMethod',
       header: 'Payment',
-      render: (o: Order) => <span className="capitalize">{o.paymentMethod || 'N/A'}</span>,
+      render: (o: Order) => <span className="capitalize">{o.payment.method || 'N/A'}</span>,
     },
     {
       key: 'orderStatus',
@@ -196,21 +196,19 @@ const OrdersPage: React.FC = () => {
             <div className="bg-gray-50 dark:bg-gray-700/30 rounded-lg p-4">
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Customer Information</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
-                {(selectedOrder as any).customer && (
+                
                   <>
                     <span className="text-gray-500 dark:text-gray-400">Name:</span>
-                    <span className="text-gray-900 dark:text-gray-100">{(selectedOrder as any).customer?.name || 'N/A'}</span>
-                    <span className="text-gray-500 dark:text-gray-400">Email:</span>
-                    <span className="text-gray-900 dark:text-gray-100">{(selectedOrder as any).customer?.email || 'N/A'}</span>
+                    <span className="text-gray-900 dark:text-gray-100">{selectedOrder.customerName || 'N/A'}</span>
                     <span className="text-gray-500 dark:text-gray-400">Phone:</span>
-                    <span className="text-gray-900 dark:text-gray-100">{(selectedOrder as any).customer?.phone || 'N/A'}</span>
+                    <span className="text-gray-900 dark:text-gray-100">{selectedOrder.customerPhone || 'N/A'}</span>
                   </>
-                )}
+                
                 <span className="text-gray-500 dark:text-gray-400">Payment Method:</span>
-                <span className="text-gray-900 dark:text-gray-100 capitalize">{selectedOrder.paymentMethod || 'N/A'}</span>
+                <span className="text-gray-900 dark:text-gray-100 capitalize">{selectedOrder.payment.method || 'N/A'}</span>
                 <span className="text-gray-500 dark:text-gray-400">Payment Status:</span>
                 <span className={`px-2 py-0.5 text-xs font-medium rounded-full inline-block w-fit ${paymentStatusColors[selectedOrder.paymentStatus || 'pending']}`}>
-                  {selectedOrder.paymentStatus || 'pending'}
+                  {selectedOrder.payment.status || 'pending'}
                 </span>
               </div>
             </div>
@@ -234,9 +232,9 @@ const OrdersPage: React.FC = () => {
                         <tr key={idx}>
                           <td className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{item.product?.name || item.name || 'Product'}</td>
                           <td className="px-4 py-2 text-sm text-right text-gray-900 dark:text-gray-100">{item.quantity}</td>
-                          <td className="px-4 py-2 text-sm text-right text-gray-900 dark:text-gray-100">{item.price?.toLocaleString()} XAF</td>
+                          <td className="px-4 py-2 text-sm text-right text-gray-900 dark:text-gray-100">{item.unitPrice?.toLocaleString()} XAF</td>
                           <td className="px-4 py-2 text-sm text-right font-medium text-gray-900 dark:text-gray-100">
-                            {((item.price || 0) * (item.quantity || 1)).toLocaleString()} XAF
+                            {((item.unitPrice || 0) * (item.quantity || 1)).toLocaleString()} XAF
                           </td>
                         </tr>
                       ))}
@@ -245,7 +243,7 @@ const OrdersPage: React.FC = () => {
                       <tr className="bg-gray-50 dark:bg-gray-700">
                         <td colSpan={3} className="px-4 py-2 text-sm font-medium text-right text-gray-700 dark:text-gray-300">Total</td>
                         <td className="px-4 py-2 text-sm font-bold text-right text-gray-900 dark:text-white">
-                          {selectedOrder.total?.toLocaleString()} XAF
+                          {selectedOrder.totalAmount?.toLocaleString()} XAF
                         </td>
                       </tr>
                     </tfoot>
@@ -287,10 +285,10 @@ const OrdersPage: React.FC = () => {
               <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-2">Payment Information</h3>
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <span className="text-gray-500 dark:text-gray-400">Method:</span>
-                <span className="text-gray-900 dark:text-gray-100 capitalize">{selectedOrder.paymentMethod || 'N/A'}</span>
+                <span className="text-gray-900 dark:text-gray-100 capitalize">{selectedOrder.payment.method || 'N/A'}</span>
                 <span className="text-gray-500 dark:text-gray-400">Status:</span>
-                <span className={`px-2 py-0.5 text-xs font-medium rounded-full inline-block w-fit ${paymentStatusColors[selectedOrder.paymentStatus || 'pending']}`}>
-                  {selectedOrder.paymentStatus || 'pending'}
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-full inline-block w-fit ${paymentStatusColors[selectedOrder.payment.status || 'pending']}`}>
+                  {selectedOrder.payment.status || 'pending'}
                 </span>
                 {(selectedOrder as any).paymentRef && (
                   <>
@@ -299,7 +297,7 @@ const OrdersPage: React.FC = () => {
                   </>
                 )}
                 <span className="text-gray-500 dark:text-gray-400">Total:</span>
-                <span className="font-medium text-gray-900 dark:text-white">{selectedOrder.total?.toLocaleString()} XAF</span>
+                <span className="font-medium text-gray-900 dark:text-white">{selectedOrder.totalAmount?.toLocaleString()} XAF</span>
               </div>
             </div>
           </div>

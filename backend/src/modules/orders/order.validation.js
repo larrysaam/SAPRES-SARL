@@ -44,9 +44,22 @@ const createOrderSchema = Joi.object({
 }).unknown(false); // Reject any unknown fields
 
 const updateOrderSchema = Joi.object({
-  orderStatus: Joi.string().valid('pending', 'processing', 'delivered', 'cancelled').optional(),
-  paymentStatus: Joi.string().valid('pending', 'paid', 'failed', 'refunded').optional(),
-});
+  status: Joi.string().valid(
+    'PENDING_PAYMENT',
+    'PAID',
+    'PAYMENT_FAILED',
+    'PROCESSING',
+    'SHIPPED',
+    'DELIVERED',
+    'CANCELLED',
+    'REFUNDED'
+  ).optional(),
+  'payment.status': Joi.string().valid(
+    'PENDING_PAYMENT',
+    'PAID',
+    'PAYMENT_FAILED'
+  ).optional(),
+}).unknown(true);
 
 export  {
   createOrderSchema,
