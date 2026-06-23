@@ -4,6 +4,7 @@ import { ApiError } from '../../utils/ApiError.js';
 
 // CAMERPAY uses https://camerpay.biz/api as base URL
 const CAMERPAY_BASE_URL = 'https://camerpay.biz/api';
+const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
 class CamerpayService {
   constructor() {
@@ -52,7 +53,8 @@ class CamerpayService {
         customer_name: customerName,
         customer_email: customerEmail,
         customer_phone: normalizedPhone,
-        merchant_callback_url: 'https://ceramics-storage-canopener.ngrok-free.dev/api/v1/payments/camerpay/webhook',
+        // merchant_callback_url: 'https://ceramics-storage-canopener.ngrok-free.dev/api/v1/payments/camerpay/webhook',
+        merchant_callback_url: `${BACKEND_URL}/api/v1/payments/camerpay/webhook`,
         merchant_return_url: 'https://www.sapressarl.com',
         source: 'api',
       };
