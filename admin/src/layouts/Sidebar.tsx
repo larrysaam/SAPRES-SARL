@@ -4,12 +4,11 @@ import {
   HomeIcon,
   CubeIcon,
   ShoppingCartIcon,
-  CreditCardIcon,
+ 
   ArchiveBoxIcon,
   UserGroupIcon,
   DocumentTextIcon,
-  Cog6ToothIcon,
-  BellIcon,
+ 
   ChartBarIcon,
   ArrowLeftOnRectangleIcon,
   SunIcon,
