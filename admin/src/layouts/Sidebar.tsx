@@ -28,13 +28,13 @@ const Sidebar: React.FC = () => {
     { name: 'Dashboard', href: '/', icon: HomeIcon, roles: ['super_admin', 'hr_admin', 'sales_admin', 'content_admin', 'inventory_admin'] },
     { name: 'Products', href: '/products', icon: CubeIcon, roles: ['super_admin', 'sales_admin', 'inventory_admin'] },
     { name: 'Orders', href: '/orders', icon: ShoppingCartIcon, roles: ['super_admin', 'sales_admin'] },
-    { name: 'Payments', href: '/payments', icon: CreditCardIcon, roles: ['super_admin', 'sales_admin'] },
+    // { name: 'Payments', href: '/payments', icon: CreditCardIcon, roles: ['super_admin', 'sales_admin'] },
     { name: 'Inventory', href: '/inventory', icon: ArchiveBoxIcon, roles: ['super_admin', 'inventory_admin'] },
     { name: 'Recruitment', href: '/recruitment', icon: UserGroupIcon, roles: ['super_admin', 'hr_admin'] },
     { name: 'Content', href: '/content', icon: DocumentTextIcon, roles: ['super_admin', 'content_admin'] },
     { name: 'Users', href: '/users', icon: UserGroupIcon, roles: ['super_admin'] },
-    { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, roles: ['super_admin'] },
-    { name: 'Notifications', href: '/notifications', icon: BellIcon, roles: ['super_admin', 'hr_admin', 'sales_admin', 'content_admin', 'inventory_admin'] },
+    // { name: 'Settings', href: '/settings', icon: Cog6ToothIcon, roles: ['super_admin'] },
+    // { name: 'Notifications', href: '/notifications', icon: BellIcon, roles: ['super_admin', 'hr_admin', 'sales_admin', 'content_admin', 'inventory_admin'] },
     { name: 'Analytics', href: '/analytics', icon: ChartBarIcon, roles: ['super_admin', 'sales_admin'] },
   ];
 

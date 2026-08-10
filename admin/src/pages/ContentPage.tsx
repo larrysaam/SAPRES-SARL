@@ -27,10 +27,11 @@ import type {
 // ------------------------------------------------------------------
 type Tab = 'homepage' | 'blog' | 'services' | 'projects' | 'testimonials' | 'partners';
 
+
 const TABS: { key: Tab; label: string }[] = [
-  { key: 'homepage', label: 'Homepage' },
+  // { key: 'homepage', label: 'Homepage' },
   { key: 'blog', label: 'Blog' },
-  { key: 'services', label: 'Services' },
+  // { key: 'services', label: 'Services' },
   // { key: 'projects', label: 'Projects' },
   { key: 'testimonials', label: 'Testimonials' },
   // { key: 'partners', label: 'Partners' },
@@ -58,7 +59,7 @@ const RatingStars: React.FC<{ rating: number }> = ({ rating }) => (
 // ContentPage Component
 // ------------------------------------------------------------------
 const ContentPage: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('homepage');
+  const [activeTab, setActiveTab] = useState<Tab>('blog');
   const queryClient = useQueryClient();
 
   // ---------- Blog state ----------

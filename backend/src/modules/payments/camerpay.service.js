@@ -4,7 +4,6 @@ import { ApiError } from '../../utils/ApiError.js';
 
 // CAMERPAY uses https://camerpay.biz/api as base URL
 const CAMERPAY_BASE_URL = 'https://camerpay.biz/api';
-const BACKEND_URL = process.env.BACKEND_URL || 'http://localhost:3000';
 
 class CamerpayService {
   constructor() {
@@ -67,7 +66,7 @@ class CamerpayService {
       console.log(`[CAMERPAY] Initiating payment for invoice: ${orderId}, Amount: ${amount} ${currency}`);
 
       const response = await axios.post(
-        `${BACKEND_URL}/payment/initiate`,
+        `${this.baseUrl}/payment/initiate`,
         payload,
         { headers, timeout: 10000 }
       );      // CAMERPAY returns: { success, transaction_uuid, pay_url, status }
@@ -129,7 +128,7 @@ class CamerpayService {
       console.log(`[CAMERPAY] Verifying transaction: ${transactionUuid}`);
 
       const response = await axios.get(
-        `${BACKEND_URL}/payment/${transactionUuid}`,
+        `${this.baseUrl}/payment/${transactionUuid}`,
         { headers, timeout: 10000 }
       );
 
